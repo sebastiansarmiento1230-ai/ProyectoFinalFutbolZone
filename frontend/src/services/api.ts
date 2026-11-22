@@ -2,7 +2,6 @@
 const rawBackendUrl =
   (import.meta as any).env?.BACKEND_URL ||
   (import.meta as any).env?.VITE_BACKEND_URL ||
-  (typeof process !== "undefined" && process.env?.BACKEND_URL) ||
   (import.meta as any).env?.VITE_API_URL ||
   "";
 
@@ -443,6 +442,11 @@ export const api = {
     request<any>("/auth/recuperar-password/verificar-pin", {
       method: "POST",
       body: JSON.stringify({ email, pin }),
+    }),
+  cambiarPasswordConPin: (datos: { email: string; pin: string; nueva_password: string }) =>
+    request<any>("/auth/recuperar-password/cambiar-password", {
+      method: "POST",
+      body: JSON.stringify(datos),
     }),
   // Calificaciones entre Jugadores (Peer-to-Peer)
   calificarJugador: (datos: { jugador_id: number; estrellas: number; comentario?: string }) =>

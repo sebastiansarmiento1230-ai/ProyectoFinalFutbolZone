@@ -20,7 +20,7 @@ const AVATARES_PRESET = [
 
 export const PerfilJugadorModal: React.FC<PerfilJugadorModalProps> = ({
   jugadorId,
-  esPropioPerfil = false,
+  esPropioPerfil: _esPropioPerfil = false,
   onClose,
   onPerfilActualizado,
 }) => {
