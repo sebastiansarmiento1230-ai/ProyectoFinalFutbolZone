@@ -20,6 +20,7 @@ interface Convocatoria {
 
 interface TablonRetosProps {
   onRequireLogin?: () => void;
+  usuario?: any;
 }
 
 const STORAGE_KEY = "fz_convocatorias_retos_v3";
@@ -69,8 +70,8 @@ const CONVOCATORIAS_INICIALES: Convocatoria[] = [
   },
 ];
 
-function TablonRetos({ onRequireLogin }: TablonRetosProps) {
-  const usuario = getStoredUser();
+function TablonRetos({ onRequireLogin, usuario: usuarioProp }: TablonRetosProps) {
+  const usuario = usuarioProp || getStoredUser();
   const [convocatorias, setConvocatorias] = useState<Convocatoria[]>([]);
   const [mostrarForm, setMostrarForm] = useState<boolean>(false);
   const [filtroCancha, setFiltroCancha] = useState<string>("todas");

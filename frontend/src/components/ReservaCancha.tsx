@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import "./ReservaCancha.css";
 import { api, getStoredUser } from "../services/api";
 import { notificarAdmin, notificarCliente } from "../services/notifications";
+import { obtenerCatalogoPorCancha } from "../data/productosCanchas";
 
 interface ReservaCanchaProps {
   cancha: any;
@@ -22,6 +23,19 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
   const [incluyeArbitro, setIncluyeArbitro] = useState<boolean>(false);
   const [metodoPago, setMetodoPago] = useState<"nequi" | "daviplata" | "tarjeta" | "efectivo">("nequi");
   const [referenciaPago, setReferenciaPago] = useState<string>("");
+
+  // ── CATÁLOGO EXCLUSIVO POR TIPO DE CANCHA (F5, F7, F11) ──
+  const infoCatalogo = useMemo(() => obtenerCatalogoPorCancha(cancha), [cancha]);
+
+  // Selección de productos: Record<prodId, { cantidad: number; momentoEntrega: "inicio" | "fin" }>
+  const [productosSeleccionados, setProductosSeleccionados] = useState<
+    Record<string, { cantidad: number; momentoEntrega: "inicio" | "fin" }>
+  >({});
+
+  // ── SERVICIO ADICIONAL DE PARQUEADERO ($5.000 COP / hora) ──
+  const [deseaParqueadero, setDeseaParqueadero] = useState<boolean>(false);
+  const [horasParqueadero, setHorasParqueadero] = useState<number>(1);
+  const TARIFA_PARQUEADERO_HORA = 5000;
 
   // Cupones de descuento
   const [cuponInput, setCuponInput] = useState<string>("");
@@ -78,6 +92,77 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
     }
   };
 
+  // ── MANEJADORES DE PRODUCTOS ──
+  const agregarProducto = (prodId: string) => {
+    setProductosSeleccionados((prev) => {
+      const actual = prev[prodId] || { cantidad: 0, momentoEntrega: "inicio" };
+      return {
+        ...prev,
+        [prodId]: {
+          cantidad: actual.cantidad + 1,
+          momentoEntrega: actual.momentoEntrega,
+        },
+      };
+    });
+  };
+
+  const quitarProducto = (prodId: string) => {
+    setProductosSeleccionados((prev) => {
+      const actual = prev[prodId];
+      if (!actual || actual.cantidad <= 1) {
+        const nuevo = { ...prev };
+        delete nuevo[prodId];
+        return nuevo;
+      }
+      return {
+        ...prev,
+        [prodId]: {
+          cantidad: actual.cantidad - 1,
+          momentoEntrega: actual.momentoEntrega,
+        },
+      };
+    });
+  };
+
+  const cambiarMomentoEntrega = (prodId: string, momento: "inicio" | "fin") => {
+    setProductosSeleccionados((prev) => {
+      const actual = prev[prodId] || { cantidad: 1, momentoEntrega: "inicio" };
+      return {
+        ...prev,
+        [prodId]: {
+          ...actual,
+          momentoEntrega: momento,
+        },
+      };
+    });
+  };
+
+  // Lista calculada de productos seleccionados
+  const listaProductosFinal = useMemo(() => {
+    return Object.entries(productosSeleccionados)
+      .filter(([_, item]) => item.cantidad > 0)
+      .map(([id, item]) => {
+        const prod = infoCatalogo.productos.find((p) => p.id === id);
+        return {
+          id,
+          nombre: prod?.nombre || "Producto",
+          descripcion: prod?.descripcion || "",
+          precio: prod?.precio || 0,
+          cantidad: item.cantidad,
+          momentoEntrega: item.momentoEntrega,
+          subtotal: (prod?.precio || 0) * item.cantidad,
+        };
+      });
+  }, [productosSeleccionados, infoCatalogo]);
+
+  const subtotalProductos = useMemo(() => {
+    return listaProductosFinal.reduce((acc, curr) => acc + curr.subtotal, 0);
+  }, [listaProductosFinal]);
+
+  // Costo parqueadero
+  const costoParqueadero = deseaParqueadero ? horasParqueadero * TARIFA_PARQUEADERO_HORA : 0;
+
+  // Cupones
   const aplicarCupon = (e: React.FormEvent) => {
     e.preventDefault();
     const codigo = cuponInput.trim().toUpperCase();
@@ -100,7 +185,7 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
   const costoBase = precioHora * duracionHoras;
   const costoBalonPetos = incluyeBalonPetos ? 15000 : 0;
   const costoArbitro = incluyeArbitro ? 30000 : 0;
-  const subtotal = costoBase + costoBalonPetos + costoArbitro;
+  const subtotal = costoBase + costoBalonPetos + costoArbitro + subtotalProductos + costoParqueadero;
   const montoDescuento = Math.round((subtotal * descuentoPct) / 100);
   const totalPagar = subtotal - montoDescuento;
 
@@ -131,6 +216,39 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
     setReservando(true);
     setMensaje(null);
 
+    // Preparar texto legible y metadata JSON para almacenamiento transparente
+    const resumenProductosTexto = listaProductosFinal.length > 0
+      ? listaProductosFinal.map((p) => `${p.cantidad}x ${p.nombre} (${p.momentoEntrega === "inicio" ? "Al iniciar" : "Al finalizar"}: $${p.subtotal.toLocaleString("es-CO")})`).join(", ")
+      : "Ninguno";
+
+    const resumenParqueaderoTexto = deseaParqueadero
+      ? `Sí (${horasParqueadero}h - $${costoParqueadero.toLocaleString("es-CO")})`
+      : "No";
+
+    const metadataObjeto = {
+      costoBase,
+      duracionHoras,
+      precioHora,
+      canchaNombre: cancha?.nombre || "Cancha Central",
+      canchaTipo: infoCatalogo.tipoModalidad,
+      subtotalProductos,
+      productos: listaProductosFinal,
+      parqueadero: {
+        contratado: deseaParqueadero,
+        horas: deseaParqueadero ? horasParqueadero : 0,
+        tarifaHora: TARIFA_PARQUEADERO_HORA,
+        total: costoParqueadero,
+      },
+      kitBalonPetos: incluyeBalonPetos,
+      costoBalonPetos,
+      arbitro: incluyeArbitro,
+      costoArbitro,
+      descuento: montoDescuento,
+      totalPagar,
+    };
+
+    const notasCompletas = `Pago: ${metodoPago.toUpperCase()} ${referenciaPago ? `(Ref: ${referenciaPago})` : ""} | Cancha: $${costoBase.toLocaleString("es-CO")} (${duracionHoras}h) | Productos: ${resumenProductosTexto} | Subtotal Prod: $${subtotalProductos.toLocaleString("es-CO")} | Parqueadero: ${resumenParqueaderoTexto} | Kit: ${incluyeBalonPetos ? "Sí (+$15.000)" : "No"} | Árbitro: ${incluyeArbitro ? "Sí (+$30.000)" : "No"} | Cupón: ${cuponAplicado || "Ninguno"} [FZ_METADATA]${JSON.stringify(metadataObjeto)}[/FZ_METADATA]`;
+
     try {
       const res = await api.crearReserva({
         cancha_id: cancha.id,
@@ -141,22 +259,24 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
         incluye_kit: incluyeBalonPetos,
         incluye_arbitro: incluyeArbitro,
         descuento: montoDescuento,
-        notas: `Pago: ${metodoPago.toUpperCase()} ${referenciaPago ? `(Ref: ${referenciaPago})` : ''} | Jugadores: ${numJugadores} | Kit: ${incluyeBalonPetos ? 'Sí (+$15.000)' : 'No'} | Árbitro: ${incluyeArbitro ? 'Sí (+$30.000)' : 'No'} | Cupón: ${cuponAplicado || 'Ninguno'}`
+        parqueadero_horas: deseaParqueadero ? horasParqueadero : 0,
+        productos: listaProductosFinal,
+        notas: notasCompletas,
       });
 
       if (res.success) {
         // Notificar en el buzón del cliente
         notificarCliente(usuario?.id, {
           titulo: "Reserva Creada Exitosamente",
-          mensaje: `Has agendado ${cancha?.nombre || "Cancha Central"} para el ${fecha} (${bloqueSeleccionado.inicio.substring(0, 5)} - ${hFinCalculada.substring(0, 5)}). Total a pagar: $${totalPagar.toLocaleString("es-CO")} COP.`,
+          mensaje: `Has agendado ${cancha?.nombre || "Cancha Central"} (${infoCatalogo.tipoModalidad}) para el ${fecha} (${bloqueSeleccionado.inicio.substring(0, 5)} - ${hFinCalculada.substring(0, 5)}). Total con adicionales: $${totalPagar.toLocaleString("es-CO")} COP.`,
           tipo: "reserva",
           accionVista: "client_dashboard",
         });
 
         // Notificar en el buzón del administrador
         notificarAdmin({
-          titulo: "Nueva Reserva Registrada",
-          mensaje: `${usuario?.nombre || "Cliente"} ha reservado ${cancha?.nombre || "Cancha Central"} para el ${fecha} (${bloqueSeleccionado.inicio.substring(0, 5)}). Liquidación: $${totalPagar.toLocaleString("es-CO")} COP.`,
+          titulo: "Nueva Reserva con Adicionales",
+          mensaje: `${usuario?.nombre || "Cliente"} ha reservado ${cancha?.nombre || "Cancha Central"} para el ${fecha}. Total Liquidado: $${totalPagar.toLocaleString("es-CO")} COP.`,
           tipo: "reserva",
           accionVista: "admin_dashboard",
         });
@@ -197,7 +317,7 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
           </button>
 
           <div className="fz-reserva-title-box">
-            <span className="fz-badge-cancha-tag">{cancha?.tipo || "Fútbol Sintético"}</span>
+            <span className="fz-badge-cancha-tag">{cancha?.tipo || "Fútbol Sintético"} · {infoCatalogo.tipoModalidad}</span>
             <h2>{cancha?.nombre || "Cancha Central"}</h2>
             <p>{cancha?.descripcion || "Cancha sintética profesional con iluminación LED y vestuarios."}</p>
           </div>
@@ -213,7 +333,14 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
             </div>
             <div className="fz-hstat">
               <span>Ubicación de la Sede</span>
-              <strong style={{ fontSize: "13px" }}>{cancha?.direccion || (cancha?.nombre?.includes("Norte") ? "Cra. 15 # 104-20, Sede Norte" : cancha?.nombre?.includes("Sur") ? "Av. Boyacá # 45-12 Sur, Sede Sur" : "Calle 63 # 28-45, Sede Central")}</strong>
+              <strong style={{ fontSize: "13px" }}>
+                {cancha?.direccion ||
+                  (cancha?.nombre?.includes("Norte")
+                    ? "Cra. 15 # 104-20, Sede Norte"
+                    : cancha?.nombre?.includes("Sur")
+                    ? "Av. Boyacá # 45-12 Sur, Sede Sur"
+                    : "Calle 63 # 28-45, Sede Central")}
+              </strong>
             </div>
             <div className="fz-hstat">
               <span>Iluminación</span>
@@ -224,7 +351,7 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
 
         {/* Grid de Configuración de Reserva */}
         <div className="fz-reserva-body-grid">
-          {/* Columna Izquierda: Opciones y Horarios */}
+          {/* Columna Izquierda: Opciones, Productos y Horarios */}
           <div className="fz-reserva-left-col">
             {/* Paso 1: Selección de Fecha */}
             <div className="fz-booking-card">
@@ -363,7 +490,7 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
               </div>
             </div>
 
-            {/* Paso 4: Servicios Adicionales */}
+            {/* Paso 4: Kits & Servicios Opcionales */}
             <div className="fz-booking-card">
               <div className="fz-step-header">
                 <span className="fz-step-num">4</span>
@@ -402,10 +529,101 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
               </div>
             </div>
 
-            {/* Paso 5: Forma de Pago */}
-            <div className="fz-booking-card">
+            {/* ── PASO 5: CATÁLOGO EXCLUSIVO DE PRODUCTOS ADICIONALES ── */}
+            <div className="fz-booking-card fz-products-booking-section">
               <div className="fz-step-header">
                 <span className="fz-step-num">5</span>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <h3>Snacks, Bebidas & Hidratación</h3>
+                    <span className="fz-badge-catalogo-mode">
+                      Catálogo Exclusivo {infoCatalogo.tipoModalidad}
+                    </span>
+                  </div>
+                  <p>{infoCatalogo.subtitulo}</p>
+                </div>
+              </div>
+
+              <div className="fz-products-catalog-grid">
+                {infoCatalogo.productos.map((prod) => {
+                  const seleccion = productosSeleccionados[prod.id];
+                  const cantidad = seleccion?.cantidad || 0;
+                  const momento = seleccion?.momentoEntrega || "inicio";
+
+                  return (
+                    <div key={prod.id} className={`fz-product-item-card ${cantidad > 0 ? "has-qty" : ""}`}>
+                      <div className="fz-product-thumb-wrap">
+                        <img src={prod.imagen} alt={prod.nombre} className="fz-product-thumb" loading="lazy" />
+                      </div>
+
+                      <div className="fz-product-main-info">
+                        <div className="fz-product-title-row">
+                          <h4 className="fz-product-name">{prod.nombre}</h4>
+                          <span className="fz-product-price-badge">${prod.precio.toLocaleString("es-CO")} COP</span>
+                        </div>
+                        <p className="fz-product-desc">{prod.descripcion}</p>
+
+                        <div className="fz-product-actions-bar">
+                          {/* Control de Cantidad (+ / -) */}
+                          <div className="fz-qty-stepper">
+                            <button
+                              type="button"
+                              className="fz-btn-stepper minus"
+                              disabled={cantidad === 0}
+                              onClick={() => quitarProducto(prod.id)}
+                              title="Disminuir cantidad"
+                            >
+                              -
+                            </button>
+                            <span className={`fz-stepper-val ${cantidad > 0 ? "highlight" : ""}`}>{cantidad}</span>
+                            <button
+                              type="button"
+                              className="fz-btn-stepper plus"
+                              onClick={() => agregarProducto(prod.id)}
+                              title="Añadir unidad"
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          {/* Selector del momento de entrega */}
+                          <div className="fz-delivery-time-picker">
+                            <span className="fz-delivery-label">Momento de entrega:</span>
+                            <div className="fz-delivery-options">
+                              <button
+                                type="button"
+                                className={`fz-btn-delivery-opt ${momento === "inicio" ? "selected" : ""}`}
+                                onClick={() => cambiarMomentoEntrega(prod.id, "inicio")}
+                              >
+                                ⏱️ Al iniciar
+                              </button>
+                              <button
+                                type="button"
+                                className={`fz-btn-delivery-opt ${momento === "fin" ? "selected" : ""}`}
+                                onClick={() => cambiarMomentoEntrega(prod.id, "fin")}
+                              >
+                                🏆 Al finalizar
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {cantidad > 0 && (
+                          <div className="fz-product-subtotal-badge">
+                            Subtotal: <strong>${(prod.precio * cantidad).toLocaleString("es-CO")} COP</strong> ({cantidad} {cantidad === 1 ? "unidad" : "unidades"} · Entrega: {momento === "inicio" ? "Al iniciar" : "Al finalizar"})
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Paso 6: Forma de Pago */}
+            <div className="fz-booking-card">
+              <div className="fz-step-header">
+                <span className="fz-step-num">6</span>
                 <div>
                   <h3>Selecciona la Forma de Pago</h3>
                   <p>Elige tu método de pago preferido para confirmar</p>
@@ -477,7 +695,8 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
               {(metodoPago === "nequi" || metodoPago === "daviplata") && (
                 <div className="fz-pay-transfer-box">
                   <div className="fz-pay-account-info">
-                    <strong>Número para transferir:</strong> {metodoPago === "nequi" ? "📱 300 123 4567 (FutbolZone)" : "📲 310 987 6543 (FutbolZone S.A.S)"}
+                    <strong>Número para transferir:</strong>{" "}
+                    {metodoPago === "nequi" ? "📱 300 123 4567 (FutbolZone)" : "📲 310 987 6543 (FutbolZone S.A.S)"}
                   </div>
                   <input
                     type="text"
@@ -488,6 +707,73 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
                   />
                 </div>
               )}
+            </div>
+
+            {/* ── SECCIÓN 6 (SUB-APARTADO): SERVICIO ADICIONAL DE PARQUEADERO ── */}
+            <div className="fz-booking-card fz-parking-booking-section">
+              <div className="fz-step-header">
+                <span className="fz-step-num">P</span>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <h3>6. Servicio adicional de parqueadero</h3>
+                    <span className="fz-badge-parking-tag">Opcional</span>
+                  </div>
+                  <p>Estacionamiento vigilado dentro del complejo deportivo con tarifa preferencial</p>
+                </div>
+              </div>
+
+              <div className="fz-parking-control-box">
+                <div className="fz-parking-question-row">
+                  <span className="fz-parking-question">
+                    🚗 ¿Desea añadir el servicio de parqueadero para su encuentro?
+                  </span>
+                  <div className="fz-parking-yesno-toggle">
+                    <button
+                      type="button"
+                      className={`fz-btn-toggle-yn ${!deseaParqueadero ? "active" : ""}`}
+                      onClick={() => setDeseaParqueadero(false)}
+                    >
+                      No
+                    </button>
+                    <button
+                      type="button"
+                      className={`fz-btn-toggle-yn ${deseaParqueadero ? "active" : ""}`}
+                      onClick={() => setDeseaParqueadero(true)}
+                    >
+                      Sí
+                    </button>
+                  </div>
+                </div>
+
+                <div className="fz-parking-rate-info">
+                  <span>ℹ️ Tarifa de referencia: <strong>$5.000 COP por hora</strong> de parqueo seguro con vigilancia privada permanente.</span>
+                </div>
+
+                {deseaParqueadero ? (
+                  <div className="fz-parking-hours-picker">
+                    <label>¿Cuántas horas de parqueadero necesita?</label>
+                    <div className="fz-parking-hours-row">
+                      {[1, 2, 3, 4, 5].map((h) => (
+                        <button
+                          key={h}
+                          type="button"
+                          className={`fz-btn-phour ${horasParqueadero === h ? "selected" : ""}`}
+                          onClick={() => setHorasParqueadero(h)}
+                        >
+                          {h} {h === 1 ? "Hora" : "Horas"}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="fz-parking-calc-summary">
+                      Liquidación de parqueadero: <strong>{horasParqueadero} {horasParqueadero === 1 ? "hora" : "horas"} × $5.000 = ${costoParqueadero.toLocaleString("es-CO")} COP</strong>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="fz-parking-unselected-msg">
+                    ✓ Sin costo adicional por parqueadero. Puedes añadirlo en cualquier momento antes de confirmar.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -500,12 +786,18 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
               <div className="fz-receipt-lines">
                 <div className="fz-rline">
                   <span>Cancha:</span>
-                  <strong>{cancha?.nombre || "Cancha Central"}</strong>
+                  <strong>{cancha?.nombre || "Cancha Central"} ({infoCatalogo.tipoModalidad})</strong>
                 </div>
                 <div className="fz-rline">
                   <span>Sede:</span>
                   <strong style={{ fontSize: "11.5px", color: "#334155", textAlign: "right" }}>
-                    📍 {cancha?.direccion || (cancha?.nombre?.includes("Norte") ? "Cra. 15 # 104-20 (Sede Norte)" : cancha?.nombre?.includes("Sur") ? "Av. Boyacá # 45-12 Sur (Sede Sur)" : "Calle 63 # 28-45 (Sede Central)")}
+                    📍{" "}
+                    {cancha?.direccion ||
+                      (cancha?.nombre?.includes("Norte")
+                        ? "Cra. 15 # 104-20 (Sede Norte)"
+                        : cancha?.nombre?.includes("Sur")
+                        ? "Av. Boyacá # 45-12 Sur (Sede Sur)"
+                        : "Calle 63 # 28-45 (Sede Central)")}
                   </strong>
                 </div>
                 <div className="fz-rline">
@@ -534,11 +826,13 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
 
                 <div className="fz-rdivider"></div>
 
+                {/* Tarifa Cancha Base */}
                 <div className="fz-rline">
                   <span>Tarifa Cancha ({duracionHoras}h):</span>
                   <span>${costoBase.toLocaleString("es-CO")}</span>
                 </div>
 
+                {/* Kits Opcionales */}
                 {incluyeBalonPetos && (
                   <div className="fz-rline">
                     <span>Kit Balón + Petos:</span>
@@ -553,6 +847,38 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
                   </div>
                 )}
 
+                {/* Desglose de Productos Seleccionados */}
+                {listaProductosFinal.length > 0 && (
+                  <div className="fz-receipt-products-breakdown">
+                    <div className="fz-rline fz-rline-group-header">
+                      <span>Snacks & Bebidas ({listaProductosFinal.length}):</span>
+                      <strong>+${subtotalProductos.toLocaleString("es-CO")}</strong>
+                    </div>
+                    <div className="fz-receipt-products-sublist">
+                      {listaProductosFinal.map((p) => (
+                        <div key={p.id} className="fz-rsubitem">
+                          <span>
+                            {p.cantidad}x {p.nombre}{" "}
+                            <small className="fz-delivery-chip-tag">
+                              ({p.momentoEntrega === "inicio" ? "Inicio" : "Fin"})
+                            </small>
+                          </span>
+                          <span>${p.subtotal.toLocaleString("es-CO")}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Desglose de Parqueadero Opcional */}
+                {deseaParqueadero && (
+                  <div className="fz-rline fz-receipt-parking-line">
+                    <span>Parqueadero ({horasParqueadero}h × $5.000):</span>
+                    <span>+${costoParqueadero.toLocaleString("es-CO")}</span>
+                  </div>
+                )}
+
+                {/* Descuento Cupón */}
                 {descuentoPct > 0 && (
                   <div className="fz-rline fz-discount-line">
                     <span>Descuento ({cuponAplicado}):</span>
@@ -577,12 +903,12 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
                     value={cuponInput}
                     onChange={(e) => setCuponInput(e.target.value)}
                   />
-                  <button type="submit" className="fz-btn-apply-coupon">Aplicar</button>
+                  <button type="submit" className="fz-btn-apply-coupon">
+                    Aplicar
+                  </button>
                 </div>
                 {mensajeCupon && (
-                  <div className={`fz-coupon-msg ${mensajeCupon.tipo}`}>
-                    {mensajeCupon.texto}
-                  </div>
+                  <div className={`fz-coupon-msg ${mensajeCupon.tipo}`}>{mensajeCupon.texto}</div>
                 )}
               </form>
 
@@ -636,7 +962,10 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
         <div className="fz-modal-backdrop-terms" onClick={() => setMostrarModalReglamento(false)}>
           <div className="fz-modal-content-terms" onClick={(e) => e.stopPropagation()}>
             <div className="fz-modal-terms-header">
-              <div className="fz-modal-terms-icon" style={{ background: "rgba(16, 185, 129, 0.15)", borderColor: "#10b981" }}>
+              <div
+                className="fz-modal-terms-icon"
+                style={{ background: "rgba(16, 185, 129, 0.15)", borderColor: "#10b981" }}
+              >
                 ⚽
               </div>
               <div>
@@ -655,12 +984,15 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
             <div className="fz-modal-terms-body">
               <h4>👟 1. Calzado Adecuado Obligatorio</h4>
               <p>
-                Para proteger el césped sintético y evitar lesiones, solo se permite el uso de <strong>calzado de torretas (TF)</strong> o <strong>suela de goma plana (IC)</strong>. Está estrictamente prohibido el uso de guayos con taches metálicos o de aluminio.
+                Para proteger el césped sintético y evitar lesiones, solo se permite el uso de{" "}
+                <strong>calzado de torretas (TF)</strong> o <strong>suela de goma plana (IC)</strong>. Está
+                estrictamente prohibido el uso de guayos con taches metálicos o de aluminio.
               </p>
 
               <h4>⏰ 2. Puntualidad en el Horario Agendado</h4>
               <p>
-                El turno de juego comienza y finaliza puntualmente en los horarios registrados. Se recomienda llegar con <strong>15 minutos de anticipación</strong> para alistamiento en vestuarios.
+                El turno de juego comienza y finaliza puntualmente en los horarios registrados. Se recomienda
+                llegar con <strong>15 minutos de anticipación</strong> para alistamiento en vestuarios.
               </p>
 
               <h4>🚫 3. Prohibiciones en el Campo de Juego</h4>

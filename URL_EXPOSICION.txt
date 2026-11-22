@@ -1,0 +1,21 @@
+=========================================================
+  ⚽ ENLACE DIRECTO PARA TU EXPOSICIÓN - FUTBOLZONE ⚽
+=========================================================
+
+🌐 ENLACE PÚBLICO HTTPS (ÁBRELO DESDE CUALQUIER COMPUTADOR O CELULAR):
+   https://practitioners-protocol-leeds-born.trycloudflare.com
+
+🏠 ENLACE LOCAL (EN ESTE COMPUTADOR):
+   http://localhost:5173
+
+📡 ENLACE EN RED LOCAL WIFI:
+   http://192.168.0.19:5173
+
+🔑 CREDENCIALES DE ACCESO:
+   - Rol Administrador: admin@futbolzone.com  | Clave: admin123
+   - Rol Cliente:       cliente@futbolzone.com| Clave: cliente123
+
+📌 NOTA:
+   No cierres esta ventana de comando durante tu exposición.
+   El enlace funcionará perfectamente mientras la ventana esté abierta.
+=========================================================

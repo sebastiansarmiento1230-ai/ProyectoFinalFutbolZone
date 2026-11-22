@@ -1254,9 +1254,21 @@ function DashboardAdmin({ onLogout, onPublicarAnuncio }: DashboardAdminProps) {
                           <td><strong>#{r.id}</strong></td>
                           <td>
                             <strong>{r.cliente || "Cliente"}</strong>
-                            {r.notas && <div className="fz-row-notes">{r.notas}</div>}
                           </td>
-                          <td><span className="fz-cancha-tag">{r.cancha_nombre || "Cancha Central"}</span></td>
+                          <td>
+                            <div className="fz-cancha-reserved-badge">
+                              <span className="fz-reserved-dot" />
+                              <strong className="fz-cancha-name-highlight">{r.cancha_nombre || "Cancha Central"}</strong>
+                            </div>
+                            <div className="fz-cancha-status-sub">
+                              <span>✓ Apartada</span>
+                              {r.notas?.includes("Productos:") && !r.notas?.includes("Productos: Ninguno") && (
+                                <span className="fz-has-extras-pill" title="Servicios y productos adicionales registrados">
+                                  + Extras
+                                </span>
+                              )}
+                            </div>
+                          </td>
                           <td>
                             {r.fecha}
                             <div className="fz-time-sub">{r.hora_inicio.substring(0, 5)} - {r.hora_fin.substring(0, 5)}</div>

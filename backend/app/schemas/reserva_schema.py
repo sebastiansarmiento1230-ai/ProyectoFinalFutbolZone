@@ -4,15 +4,17 @@ from datetime import datetime, date, time
 
 
 class ReservaSchema(BaseModel):
-    cancha_id:       int
-    fecha:           date
-    hora_inicio:     time
-    hora_fin:        time
-    precio_total:    Optional[float] = None
-    incluye_kit:     Optional[bool]  = False
-    incluye_arbitro: Optional[bool]  = False
-    descuento:       Optional[float] = 0.0
-    notas:           Optional[str]   = None
+    cancha_id:         int
+    fecha:             date
+    hora_inicio:       time
+    hora_fin:          time
+    precio_total:      Optional[float] = None
+    incluye_kit:       Optional[bool]  = False
+    incluye_arbitro:   Optional[bool]  = False
+    descuento:         Optional[float] = 0.0
+    parqueadero_horas: Optional[int]   = 0
+    productos:         Optional[list]  = None
+    notas:             Optional[str]   = None
 
 
 class ReservaUpdateSchema(BaseModel):

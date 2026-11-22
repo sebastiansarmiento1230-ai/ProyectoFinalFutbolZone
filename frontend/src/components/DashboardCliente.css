@@ -300,3 +300,385 @@
   background: #0f172a;
   border-color: #1e293b;
 }
+
+/* ===================================================
+   PANEL DE BÚSQUEDA Y FILTROS DEPORTIVOS (ETAPA 4)
+   =================================================== */
+.fz-results-count-badge {
+  display: inline-block;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  margin-left: 12px;
+}
+
+.dark-mode .fz-results-count-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.fz-filters-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fz-btn-clear-filters {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fz-btn-clear-filters:hover {
+  background: #fecaca;
+  transform: translateY(-1px);
+}
+
+.dark-mode .fz-btn-clear-filters {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.fz-booking-filters-panel {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin: 14px 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dark-mode .fz-booking-filters-panel {
+  background: #0f172a;
+  border-color: #1e293b;
+}
+
+/* 1. Barra de búsqueda */
+.fz-search-box-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.fz-search-icon {
+  position: absolute;
+  left: 14px;
+  font-size: 15px;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.fz-filter-search-input {
+  width: 100%;
+  padding: 11px 40px 11px 38px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  font-size: 13.5px;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.fz-filter-search-input:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+.dark-mode .fz-filter-search-input {
+  background: #0b1120;
+  border-color: #334155;
+  color: #ffffff;
+}
+
+.dark-mode .fz-filter-search-input:focus {
+  border-color: #34d399;
+}
+
+.fz-btn-input-clear {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.fz-btn-input-clear:hover {
+  color: #ef4444;
+}
+
+/* 2. Filas de filtros */
+.fz-filter-section-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fz-filter-label {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #475569;
+  min-width: 75px;
+}
+
+.dark-mode .fz-filter-label {
+  color: #94a3b8;
+}
+
+/* Pastillas de Cancha */
+.fz-court-pills-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fz-court-pill {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  color: #334155;
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fz-court-pill:hover {
+  border-color: #10b981;
+  color: #059669;
+  transform: translateY(-1px);
+}
+
+.fz-court-pill.active {
+  background: linear-gradient(135deg, #071f15 0%, #0d3827 100%);
+  border-color: #10b981;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(7, 31, 21, 0.25), 0 0 10px rgba(16, 185, 129, 0.25);
+}
+
+.dark-mode .fz-court-pill {
+  background: #0b1120;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+.dark-mode .fz-court-pill.active {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+}
+
+/* Pastillas de Modo de Fecha */
+.fz-date-mode-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.fz-date-mode-btn {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fz-date-mode-btn:hover {
+  border-color: #10b981;
+}
+
+.fz-date-mode-btn.active {
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
+}
+
+.dark-mode .fz-date-mode-btn {
+  background: #0b1120;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+.dark-mode .fz-date-mode-btn.active {
+  background: #10b981;
+  color: #ffffff;
+}
+
+/* Inputs de Fecha */
+.fz-date-picker-inline,
+.fz-date-range-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fz-date-range-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.fz-date-input {
+  padding: 6px 10px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f172a;
+  background: #ffffff;
+  outline: none;
+}
+
+.fz-date-input:focus {
+  border-color: #10b981;
+}
+
+.dark-mode .fz-date-input {
+  background: #0b1120;
+  border-color: #334155;
+  color: #ffffff;
+}
+
+.fz-btn-input-clear-sm {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.fz-btn-input-clear-sm:hover {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+/* Tarjeta de estado vacío agradable */
+.fz-empty-state-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  text-align: center;
+}
+
+.fz-empty-state-box h4 {
+  margin: 10px 0 6px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.fz-empty-state-box p {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  max-width: 440px;
+}
+
+.dark-mode .fz-empty-state-box h4 {
+  color: #ffffff;
+}
+
+.dark-mode .fz-empty-state-box p {
+  color: #94a3b8;
+}
+
+/* ===================================================
+   SIMPLIFICACIÓN VISUAL: DESTAQUE DE CANCHA APARTADA (ETAPA 5)
+   =================================================== */
+.fz-cancha-reserved-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  padding: 5px 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.1);
+}
+
+.fz-reserved-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.fz-cancha-name-highlight {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #065f46;
+  letter-spacing: -0.2px;
+}
+
+.dark-mode .fz-cancha-name-highlight {
+  color: #34d399;
+}
+
+.fz-cancha-status-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #059669;
+  margin-top: 5px;
+}
+
+.dark-mode .fz-cancha-status-sub {
+  color: #6ee7b7;
+}
+
+.fz-has-extras-pill {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  cursor: help;
+}
+
+.dark-mode .fz-has-extras-pill {
+  background: #1e293b;
+  border-color: #334155;
+  color: #94a3b8;
+}

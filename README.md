@@ -11,14 +11,14 @@ El proyecto se encuentra en un **98% de desarrollo funcional y productivo**, con
 
 ```
 ╔══════════════════════════════════════════════════════════════════════╦════════════╗
-║ Módulo del Sistema                                                  ║ Estado     ║
+║ Módulo del Sistema                                                   ║ Estado     ║
 ╠══════════════════════════════════════════════════════════════════════╬════════════╣
 ║ 1. Autenticación, JWT, Roles y Recuperación con PIN Gmail SMTP       ║   100% 🟢  ║
 ║ 2. Catálogo de Canchas, Filtros y Disponibilidad en Tiempo Real      ║   100% 🟢  ║
 ║ 3. Motor de Reservas, Agendamiento y Control de Solapamiento         ║   100% 🟢  ║
 ║ 4. Torneos Deportivos, Categorías y Control de Inscripciones         ║    90% 🟢  ║
 ║ 5. Dashboard Administrativo, Métricas KPI y Reportes Excel           ║    95% 🟢  ║
-║ 6. UI/UX: Dock 3 Botones (Tema ☀️/🌙, PC 💻 y Celular 📱)            ║   100% 🟢  ║
+║ 6. UI/UX: Dock 3 Botones (Tema ☀️/🌙, PC 💻 y Celular 📱)          ║   100% 🟢  ║
 ║ 7. Base de Datos Relacional SQLite Nativa + Fallback MySQL           ║   100% 🟢  ║
 ╠══════════════════════════════════════════════════════════════════════╬════════════╣
 ║ 🎯 PROMEDIO TOTAL DE DESARROLLO DEL PROYECTO                        ║    98% 🚀  ║

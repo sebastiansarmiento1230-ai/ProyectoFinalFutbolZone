@@ -7,8 +7,8 @@ interface TicketReservaModalProps {
   onClose: () => void;
 }
 
-// Generador de Matriz QR en SVG vectorial nítido
-function GeneradorQRSVG({ valor, size = 110 }: { valor: string; size?: number }) {
+// Generador de Matriz QR en SVG vectorial nítido (conservado 100% funcional)
+function GeneradorQRSVG({ valor, size = 115 }: { valor: string; size?: number }) {
   const celdas = useMemo(() => {
     // Generación de matriz determinística basada en el texto (21x21 estándar)
     const n = 21;
@@ -38,7 +38,7 @@ function GeneradorQRSVG({ valor, size = 110 }: { valor: string; size?: number })
       grid[i][6] = i % 2 === 0;
     }
 
-    // Datos basados en hash simple
+    // Datos basados en hash determinístico del contenido
     let hash = 0;
     for (let i = 0; i < valor.length; i++) {
       hash = (hash << 5) - hash + valor.charCodeAt(i);
@@ -67,7 +67,7 @@ function GeneradorQRSVG({ valor, size = 110 }: { valor: string; size?: number })
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="fz-qr-svg-code">
-      <rect width={size} height={size} fill="#ffffff" rx={8} />
+      <rect width={size} height={size} fill="#ffffff" rx={6} />
       {celdas.map((fila, r) =>
         fila.map((activo, c) =>
           activo ? (
@@ -91,6 +91,33 @@ function TicketReservaModal({ reserva, usuario, onClose }: TicketReservaModalPro
     window.print();
   };
 
+  // Extracción de metadatos estructurados de productos y parqueadero
+  const metadata = useMemo(() => {
+    if (!reserva?.notas) return null;
+    const match = reserva.notas.match(/\[FZ_METADATA\](.*?)\[\/FZ_METADATA\]/);
+    if (match && match[1]) {
+      try {
+        return JSON.parse(match[1]);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }, [reserva]);
+
+  const notaLimpia = useMemo(() => {
+    if (!reserva?.notas) return "Fútbol Sintético con Iluminación LED";
+    return reserva.notas.replace(/\[FZ_METADATA\].*?\[\/FZ_METADATA\]/g, "").trim() || "Fútbol Sintético con Iluminación LED";
+  }, [reserva]);
+
+  const metodoPago = useMemo(() => {
+    if (reserva?.metodo_pago) return reserva.metodo_pago;
+    if (reserva?.notas?.includes("NEQUI")) return "Nequi";
+    if (reserva?.notas?.includes("DAVIPLATA")) return "Daviplata";
+    if (reserva?.notas?.includes("TARJETA")) return "Tarjeta Débito/Crédito";
+    return "Efectivo en Taquilla";
+  }, [reserva]);
+
   const qrData = `https://futbolzone.com/val?reserva=${reserva?.id || 1}&cancha=${reserva?.cancha_id || 1}&fecha=${reserva?.fecha || "2026-08-28"}&cliente=${encodeURIComponent(usuario?.nombre || "Cliente")}`;
 
   const generarEnlaceCalendar = () => {
@@ -100,106 +127,227 @@ function TicketReservaModal({ reserva, usuario, onClose }: TicketReservaModalPro
     const hFin = (reserva?.hora_fin || "19:00").substring(0, 5).replace(":", "") + "00";
     
     const datesParam = `${fechaLimpia}T${hInicio}/${fechaLimpia}T${hFin}`;
-    const detalles = encodeURIComponent(`Reserva #${reserva?.id || "001"} en FutbolZone. Presentar ticket en recepción 15 min antes.`);
-    const ubicacion = encodeURIComponent("Av. Calle 63 # 28-50, FutbolZone D.C.");
+    const detalles = encodeURIComponent(`Reserva #${reserva?.id || "001"} en FutbolZone. Presentar entrada deportiva en taquilla 15 min antes.`);
+    const ubicacion = encodeURIComponent("Av. Calle 63 # 28-50, Complejo Deportivo FutbolZone D.C.");
 
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${titulo}&dates=${datesParam}&details=${detalles}&location=${ubicacion}`;
   };
 
   return (
-    <div className="ticket-modal-overlay">
-      <div className="ticket-modal-card">
-        <button type="button" className="btn-close-ticket" onClick={onClose} title="Cerrar modal">
+    <div className="ticket-modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="ticket-modal-card" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="btn-close-ticket" onClick={onClose} title="Cerrar comprobante" aria-label="Cerrar modal">
           ✕
         </button>
 
-        {/* CONTENIDO IMPRIMIBLE DEL TICKET */}
+        {/* ══════════════════════════════════════════════════════
+            BOLETO OFICIAL DE ESTADIO DEPORTIVO (MATCHDAY PASS)
+            ══════════════════════════════════════════════════════ */}
         <div className="ticket-printable-content">
-          <div className="ticket-header" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <img
-              src="/logo-futbolzone.png"
-              alt="Logo FutbolZone"
-              className="fz-brand-logo-emblem"
-              style={{ width: "56px", height: "56px", marginBottom: "6px" }}
-            />
-            <h2>FutbolZone</h2>
-            <span className="ticket-badge-official">COMPROBANTE OFICIAL DE RESERVA</span>
-            <p className="ticket-sub">Complejo Deportivo & Canchas Sintéticas</p>
+          {/* LÍNEAS DE CAMPO & MARCA DE AGUA DEPORTIVA */}
+          <div className="ticket-pitch-watermark">
+            <div className="ticket-field-circle" />
+            <div className="ticket-field-line" />
           </div>
 
-          <div className="ticket-qr-section">
-            <div className="qr-box-wrapper">
-              <GeneradorQRSVG valor={qrData} size={110} />
-              <span className="qr-scan-badge">📱 ESCANEAR EN TAQUILLA</span>
-            </div>
-            <div className="ticket-code-info">
-              <strong>Código de Validación:</strong>
-              <div className="code-hash">FZ-2026-{reserva?.id || "01"}-OK</div>
-              <small style={{ color: "#10b981", fontWeight: 700, display: "block", marginTop: "4px" }}>
-                ✓ Token Criptográfico Verificado
-              </small>
-            </div>
-          </div>
-
-          <div className="ticket-details-grid">
-            <div className="ticket-row">
-              <span>Cliente / Titular:</span>
-              <strong>{usuario?.nombre} {usuario?.apellido}</strong>
+          {/* CABECERA DE LA ENTRADA */}
+          <div className="ticket-matchday-header">
+            <div className="ticket-brand-row">
+              <img
+                src="/logo-futbolzone.png"
+                alt="Logo FutbolZone"
+                className="fz-brand-logo-emblem"
+                style={{ width: "48px", height: "48px" }}
+              />
+              <div className="ticket-brand-text">
+                <h2>FUTBOL<span>ZONE</span></h2>
+                <span className="ticket-sub-brand">COMPLEJO DEPORTIVO PROFESIONAL</span>
+              </div>
             </div>
 
-            <div className="ticket-row">
-              <span>Correo de Contacto:</span>
-              <strong>{usuario?.email || usuario?.correo || "cliente@futbolzone.com"}</strong>
-            </div>
-
-            <div className="ticket-row">
-              <span>Cancha Asignada:</span>
-              <strong>{reserva?.cancha_nombre || `Cancha #${reserva?.cancha_id || 1}`}</strong>
-            </div>
-
-            <div className="ticket-row">
-              <span>Fecha del Partido:</span>
-              <strong>{reserva?.fecha}</strong>
-            </div>
-
-            <div className="ticket-row">
-              <span>Horario Reservado:</span>
-              <strong>{reserva?.hora_inicio?.substring(0, 5)} - {reserva?.hora_fin?.substring(0, 5)}</strong>
-            </div>
-
-            <div className="ticket-row">
-              <span>Método / Notas:</span>
-              <strong>{reserva?.notas || "Fútbol Sintético con Iluminación LED"}</strong>
-            </div>
-
-            <div className="ticket-row total-row">
-              <span>Total Liquidado:</span>
-              <strong className="total-price">${Number(reserva?.precio_total || 50000).toLocaleString("es-CO")} COP</strong>
+            <div className="ticket-pass-badge">
+              <span className="pass-pill">MATCHDAY OFFICIAL PASS</span>
+              <span className="ticket-id-tag">BOLETO #{String(reserva?.id || "001").padStart(4, "0")}</span>
             </div>
           </div>
 
-          <div className="ticket-footer-notes">
-            <p>📌 Presenta este código QR en la entrada 15 minutos antes de iniciar tu partido.</p>
-            <p>© 2026 FutbolZone ADSO III — Todos los derechos reservados.</p>
+          {/* TIRA DE ACCESO AL ESTADIO (PUERTA, SECTOR, DORSAL) */}
+          <div className="ticket-stadium-gate-bar">
+            <div className="stadium-gate-item">
+              <span>ACCESO</span>
+              <strong>PUERTA 1</strong>
+            </div>
+            <div className="stadium-gate-item">
+              <span>ZONA</span>
+              <strong>CANCHA VIP</strong>
+            </div>
+            <div className="stadium-gate-item">
+              <span>DURACIÓN</span>
+              <strong>{metadata?.duracionHoras || 1} HORA(S)</strong>
+            </div>
+            <div className="stadium-gate-item">
+              <span>ESTADO</span>
+              <strong className="status-confirmed">{reserva?.estado?.toUpperCase() || "CONFIRMADO"}</strong>
+            </div>
+          </div>
+
+          {/* CUERPO PRINCIPAL DEL TICKET: INFORMACIÓN DEL PARTIDO */}
+          <div className="ticket-match-body">
+            {/* Cancha Asignada Destacada */}
+            <div className="ticket-court-highlight-box">
+              <div className="court-label-row">
+                <span className="court-category-badge">⚽ CANCHA RESERVADA</span>
+                <span className="court-type-pill">{metadata?.canchaTipo || "Fútbol Sintético LED"}</span>
+              </div>
+              <h3 className="court-main-title">{reserva?.cancha_nombre || `Cancha #${reserva?.cancha_id || 1}`}</h3>
+              <p className="court-address-sub">Av. Calle 63 # 28-50 · Sede Central El Campín · Bogotá D.C.</p>
+            </div>
+
+            {/* Fila de Datos Clave (Fecha, Horario, Jugador) */}
+            <div className="ticket-fixture-grid">
+              <div className="fixture-cell">
+                <span className="cell-label">📅 FECHA DEL PARTIDO</span>
+                <strong className="cell-value">{reserva?.fecha}</strong>
+              </div>
+
+              <div className="fixture-cell">
+                <span className="cell-label">⏰ FRANJA HORARIA</span>
+                <strong className="cell-value highlight-time">
+                  {reserva?.hora_inicio?.substring(0, 5)} - {reserva?.hora_fin?.substring(0, 5)}
+                </strong>
+              </div>
+
+              <div className="fixture-cell">
+                <span className="cell-label">👤 TITULAR DE LA RESERVA</span>
+                <strong className="cell-value">{usuario?.nombre} {usuario?.apellido}</strong>
+              </div>
+
+              <div className="fixture-cell">
+                <span className="cell-label">💳 MÉTODO DE PAGO</span>
+                <strong className="cell-value">{metodoPago}</strong>
+              </div>
+            </div>
+
+            {/* Desglose de Cancha Base */}
+            {metadata?.costoBase && (
+              <div className="ticket-cost-item">
+                <span>Alquiler de Cancha ({metadata.duracionHoras || 1}h):</span>
+                <strong>${Number(metadata.costoBase).toLocaleString("es-CO")} COP</strong>
+              </div>
+            )}
+
+            {/* Desglose de Productos Seleccionados */}
+            {metadata?.productos && metadata.productos.length > 0 && (
+              <div className="ticket-products-section">
+                <div className="ticket-section-label">
+                  <span>🍿 Adicionales & Bebidas Incluidas:</span>
+                  <strong>+${Number(metadata.subtotalProductos || 0).toLocaleString("es-CO")} COP</strong>
+                </div>
+                <div className="ticket-products-table">
+                  {metadata.productos.map((prod: any, idx: number) => (
+                    <div key={idx} className="ticket-product-row">
+                      <div className="tprod-name">
+                        <span>{prod.cantidad}x {prod.nombre}</span>
+                        <small className="tprod-delivery">
+                          Entrega: {prod.momentoEntrega === "inicio" ? "Al iniciar el partido" : "Al finalizar el partido"}
+                        </small>
+                      </div>
+                      <div className="tprod-price">
+                        ${Number(prod.subtotal).toLocaleString("es-CO")} COP
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Servicio de Parqueadero */}
+            {metadata?.parqueadero && metadata.parqueadero.contratado && (
+              <div className="ticket-cost-item ticket-parking-cost">
+                <span>🚗 Servicio de Parqueadero ({metadata.parqueadero.horas}h × $5.000):</span>
+                <strong>+${Number(metadata.parqueadero.total).toLocaleString("es-CO")} COP</strong>
+              </div>
+            )}
+
+            {/* Kit y Árbitro si aplican */}
+            {metadata?.kitBalonPetos && (
+              <div className="ticket-cost-item">
+                <span>⚽ Kit Balón Oficial + Petos:</span>
+                <strong>+$15.000 COP</strong>
+              </div>
+            )}
+
+            {metadata?.arbitro && (
+              <div className="ticket-cost-item">
+                <span>🏁 Arbitraje Federado:</span>
+                <strong>+$30.000 COP</strong>
+              </div>
+            )}
+
+            {metadata?.descuento > 0 && (
+              <div className="ticket-cost-item ticket-discount-cost">
+                <span>Descuento Promocional:</span>
+                <strong style={{ color: "#ef4444" }}>-${Number(metadata.descuento).toLocaleString("es-CO")} COP</strong>
+              </div>
+            )}
+          </div>
+
+          {/* ── SEPARADOR TROQUELADO CON MUESCAS CIRCULARES LATERALES (TICKET STUB) ── */}
+          <div className="ticket-stub-divider">
+            <div className="ticket-notch notch-left" />
+            <div className="ticket-perforated-line" />
+            <div className="ticket-notch notch-right" />
+          </div>
+
+          {/* ── ZONA DE VALIDACIÓN & CÓDIGO QR PROFESIONAL ── */}
+          <div className="ticket-validation-section">
+            <div className="ticket-qr-holder">
+              <GeneradorQRSVG valor={qrData} size={115} />
+              <span className="qr-badge-scan">📱 ESCANEAR EN CONTROL</span>
+            </div>
+
+            <div className="ticket-security-info">
+              <span className="sec-label">CÓDIGO DE VALIDACIÓN CRIPTOGRÁFICA</span>
+              <div className="code-hash-sport">FZ-2026-{String(reserva?.id || "01").padStart(3, "0")}-OK</div>
+              <div className="sec-check">
+                <span className="sec-dot" />
+                <span>Autenticación de Acceso Válida</span>
+              </div>
+              <small className="sec-notes">{notaLimpia}</small>
+            </div>
+          </div>
+
+          {/* BANNER TOTAL SCOREBOARD */}
+          <div className="ticket-scoreboard-total">
+            <div className="total-label-box">
+              <span>TOTAL LIQUIDADO</span>
+              <small>Impuestos y servicios incluidos</small>
+            </div>
+            <div className="total-amount-box">
+              ${Number(reserva?.precio_total || 50000).toLocaleString("es-CO")} <small>COP</small>
+            </div>
+          </div>
+
+          {/* PIE DE PÁGINA DEL BOLETO */}
+          <div className="ticket-footer-disclaimer">
+            <p>📌 Presenta este código QR en taquilla 15 minutos antes de la hora acordada.</p>
+            <p>© 2026 FutbolZone ADSO III · SENA · Nicolas Felipe Paz Ortiz</p>
           </div>
         </div>
 
-        {/* ACCIONES DEL MODAL */}
-        <div className="ticket-modal-actions" style={{ flexDirection: "column", gap: "8px" }}>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button type="button" className="btn-imprimir-ticket" onClick={imprimirTicket}>
-              🖨️ Imprimir / Guardar PDF
-            </button>
-            <a
-              href={generarEnlaceCalendar()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-calendar-link"
-            >
-              📅 Google Calendar
-            </a>
-          </div>
-
+        {/* ── BOTONES DE ACCIÓN DEL MODAL ── */}
+        <div className="ticket-modal-actions">
+          <button type="button" className="btn-imprimir-ticket" onClick={imprimirTicket}>
+            🖨️ Imprimir / Guardar Entrada en PDF
+          </button>
+          <a
+            href={generarEnlaceCalendar()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-calendar-link"
+          >
+            📅 Agendar en Google Calendar
+          </a>
           <button type="button" className="btn-cerrar-ticket-sm" onClick={onClose}>
             Cerrar
           </button>

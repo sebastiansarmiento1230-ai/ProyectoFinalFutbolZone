@@ -9,6 +9,7 @@ import Canchas from "./components/Canchas";
 import ReservaCancha from "./components/ReservaCancha";
 import DashboardAdmin from "./components/DashboardAdmin";
 import DashboardCliente from "./components/DashboardCliente";
+import FutbolLoadingIntro from "./components/FutbolLoadingIntro";
 import WhatsappFloat from "./components/WhatsappFloat";
 import NotificacionesPill from "./components/NotificacionesPill";
 import UbicacionMapa from "./components/UbicacionMapa";
@@ -68,14 +69,28 @@ function App() {
     localStorage.setItem("futbolzone_tema", nuevoTema);
   };
 
+  // 🎬 Estados de la animación cinematográfica deportiva post-login (6 Escenas Anime)
+  const [introActiva, setIntroActiva] = useState<boolean>(false);
+  const [usuarioPostIntro, setUsuarioPostIntro] = useState<any | null>(null);
+
   const manejarLoginExitoso = (user: any) => {
-    setUsuario(user);
-    if (canchaParaReservar) {
-      setVista("reserva");
-    } else if (user.rol === "admin") {
-      setVista("admin_dashboard");
-    } else {
-      setVista("client_dashboard");
+    // Tras autenticación exitosa tanto de admin como de cliente, se activa la cinemática
+    setUsuarioPostIntro(user);
+    setIntroActiva(true);
+  };
+
+  const completarIntroCinematica = () => {
+    setIntroActiva(false);
+    const user = usuarioPostIntro;
+    if (user) {
+      setUsuario(user);
+      if (canchaParaReservar) {
+        setVista("reserva");
+      } else if (user.rol === "admin") {
+        setVista("admin_dashboard");
+      } else {
+        setVista("client_dashboard");
+      }
     }
   };
 
@@ -401,7 +416,7 @@ function App() {
     </div>
 
     {/* MODAL FLOTANTE DE LOGIN CON FONDO DESVANECIDO */}
-    {vista === "login" && (
+    {vista === "login" && !introActiva && (
       <Login
         onLoginSuccess={manejarLoginExitoso}
         onSwitchToRegister={() => setVista("registro")}
@@ -410,11 +425,20 @@ function App() {
     )}
 
     {/* MODAL FLOTANTE DE REGISTRO CON FONDO DESVANECIDO */}
-    {vista === "registro" && (
+    {vista === "registro" && !introActiva && (
       <Registro
         onRegisterSuccess={() => setVista("login")}
         onSwitchToLogin={() => setVista("login")}
         onGoHome={() => setVista("landing")}
+      />
+    )}
+
+    {/* 🎬 SECUENCIA CINEMATOGRÁFICA DE 6 ESCENAS TRAS INICIO DE SESIÓN EXITOSO */}
+    {introActiva && (
+      <FutbolLoadingIntro
+        onComplete={completarIntroCinematica}
+        rolUsuario={usuarioPostIntro?.rol || "cliente"}
+        nombreUsuario={usuarioPostIntro?.nombre || "Crack"}
       />
     )}
 

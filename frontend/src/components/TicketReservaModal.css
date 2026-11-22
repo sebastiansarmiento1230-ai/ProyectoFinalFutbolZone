@@ -1,220 +1,586 @@
-/* TicketReservaModal.css */
+/* ===================================================
+   FUTBOLZONE — BOLETO OFICIAL DE ESTADIO (MATCHDAY PASS)
+   =================================================== */
+
 .ticket-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(4px);
+  background: rgba(3, 10, 6, 0.85);
+  backdrop-filter: blur(10px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 2000;
   padding: 20px;
+  overflow-y: auto;
 }
 
 .ticket-modal-card {
-  background: white;
-  border-radius: 16px;
+  background: #08140d;
+  border-radius: 24px;
   width: 100%;
-  max-width: 440px;
-  padding: 28px;
+  max-width: 480px;
+  padding: 24px;
   position: relative;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8),
+              0 0 35px rgba(16, 185, 129, 0.25);
+  border: 1.5px solid rgba(16, 185, 129, 0.4);
+  color: #f8fafc;
+  animation: ticketPop 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes ticketPop {
+  0% { transform: scale(0.92) translateY(20px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 
 .btn-close-ticket {
   position: absolute;
   top: 14px;
   right: 14px;
-  background: #f1f5f9;
-  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   width: 32px;
   height: 32px;
   cursor: pointer;
-  color: #64748b;
+  color: #cbd5e1;
   font-weight: bold;
-}
-
-.ticket-printable-content {
-  border: 2px dashed #cbd5e1;
-  border-radius: 12px;
-  padding: 20px;
-  background: #fafafa;
-}
-
-.ticket-header {
-  text-align: center;
-  margin-bottom: 16px;
-}
-
-.ticket-header h2 {
-  margin: 0;
-  color: #15803d;
-  font-size: 24px;
-}
-
-.ticket-badge-official {
-  display: inline-block;
-  background: #dcfce7;
-  color: #166534;
-  font-size: 10px;
-  font-weight: 800;
-  padding: 2px 8px;
-  border-radius: 10px;
-  margin-top: 4px;
-}
-
-.ticket-sub {
-  font-size: 11px;
-  color: #64748b;
-  margin: 2px 0 0;
-}
-
-.ticket-qr-section {
   display: flex;
   align-items: center;
-  gap: 16px;
-  background: white;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  margin-bottom: 16px;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 20;
 }
 
-.qr-box-wrapper {
+.btn-close-ticket:hover {
+  background: rgba(239, 68, 68, 0.3);
+  color: #ffffff;
+  border-color: #ef4444;
+  transform: rotate(90deg);
+}
+
+/* ── CONTENIDO IMPRIMIBLE DEL BOLETO (MATCH PASS) ── */
+.ticket-printable-content {
+  position: relative;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(16, 185, 129, 0.2) 0%, transparent 60%),
+    linear-gradient(180deg, #0a1f14 0%, #06150e 60%, #030d08 100%);
+  border-radius: 18px;
+  border: 1.5px solid rgba(16, 185, 129, 0.35);
+  overflow: hidden;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Marca de agua de líneas de campo */
+.ticket-pitch-watermark {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0.15;
+}
+
+.ticket-field-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 260px;
+  height: 260px;
+  border: 2px dashed #ffffff;
+  border-radius: 50%;
+}
+
+.ticket-field-line {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #ffffff;
+}
+
+/* ── CABECERA DEL BOLETO ── */
+.ticket-matchday-header {
+  padding: 20px 22px 14px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 46, 22, 0.4) 100%);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.25);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ticket-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ticket-brand-text h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+
+.ticket-brand-text h2 span {
+  color: #10b981;
+}
+
+.ticket-sub-brand {
+  font-size: 9px;
+  color: #94a3b8;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  display: block;
+}
+
+.ticket-pass-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.pass-pill {
+  font-size: 9px;
+  font-weight: 900;
+  background: #10b981;
+  color: #06150e;
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.5px;
+}
+
+.ticket-id-tag {
+  font-family: monospace;
+  font-size: 11px;
+  color: #34d399;
+  font-weight: 800;
+}
+
+/* ── TIRA DE ACCESO AL ESTADIO (GATE BAR) ── */
+.ticket-stadium-gate-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.15);
+  padding: 8px 14px;
+  text-align: center;
+}
+
+.stadium-gate-item span {
+  display: block;
+  font-size: 8.5px;
+  color: #64748b;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.stadium-gate-item strong {
+  font-size: 11px;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.stadium-gate-item strong.status-confirmed {
+  color: #34d399;
+}
+
+/* ── CUERPO PRINCIPAL DEL PARTIDO ── */
+.ticket-match-body {
+  padding: 18px 22px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Destacado de la Cancha */
+.ticket-court-highlight-box {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.court-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.court-category-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: #10b981;
+  letter-spacing: 0.5px;
+}
+
+.court-type-pill {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.court-main-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  text-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+}
+
+.court-address-sub {
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* Fila de Datos Clave */
+.ticket-fixture-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.fixture-cell {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.cell-label {
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.cell-value {
+  font-size: 12.5px;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.cell-value.highlight-time {
+  color: #34d399;
+}
+
+/* Desglose de Cancha y Adicionales */
+.ticket-cost-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #cbd5e1;
+  padding: 4px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.ticket-cost-item strong {
+  color: #ffffff;
+}
+
+.ticket-parking-cost strong {
+  color: #38bdf8 !important;
+}
+
+.ticket-products-section {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.ticket-section-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 800;
+  color: #34d399;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ticket-products-table {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ticket-product-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.tprod-name {
+  color: #cbd5e1;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+}
+
+.tprod-delivery {
+  font-size: 9px;
+  color: #10b981;
+  font-weight: 700;
+}
+
+.tprod-price {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* ── SEPARADOR TROQUELADO CON MUESCAS (TICKET STUB) ── */
+.ticket-stub-divider {
+  position: relative;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  margin: 4px 0;
+}
+
+.ticket-notch {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  background: #08140d;
+  border-radius: 50%;
+  border: 1.5px solid rgba(16, 185, 129, 0.35);
+  z-index: 10;
+}
+
+.notch-left {
+  left: -11px;
+  border-left-color: transparent;
+  box-shadow: inset -3px 0 6px rgba(0, 0, 0, 0.5);
+}
+
+.notch-right {
+  right: -11px;
+  border-right-color: transparent;
+  box-shadow: inset 3px 0 6px rgba(0, 0, 0, 0.5);
+}
+
+.ticket-perforated-line {
+  width: 100%;
+  height: 0;
+  border-top: 2px dashed rgba(16, 185, 129, 0.4);
+}
+
+/* ── ZONA DE VALIDACIÓN & CÓDIGO QR PROFESIONAL ── */
+.ticket-validation-section {
+  padding: 12px 22px 16px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.ticket-qr-holder {
+  background: #ffffff;
+  padding: 8px;
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  background: #f8fafc;
-  padding: 8px;
-  border-radius: 10px;
-  border: 1px solid #cbd5e1;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+  border: 2px solid #10b981;
+  flex-shrink: 0;
 }
 
 .fz-qr-svg-code {
-  border-radius: 6px;
   display: block;
 }
 
-.qr-scan-badge {
-  font-size: 9px;
-  font-weight: 800;
-  color: #059669;
+.qr-badge-scan {
+  font-size: 8.5px;
+  font-weight: 900;
+  color: #064e3b;
   letter-spacing: 0.5px;
 }
 
-.ticket-code-info {
+.ticket-security-info {
   flex: 1;
-}
-
-.code-hash {
-  font-family: monospace;
-  font-size: 14px;
-  color: #065f46;
-  font-weight: 800;
-  background: #d1fae5;
-  padding: 4px 8px;
-  border-radius: 6px;
-  display: inline-block;
-  margin-top: 4px;
-}
-
-.ticket-details-grid {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  font-size: 13px;
-  text-align: left;
+  gap: 4px;
 }
 
-.ticket-row {
+.sec-label {
+  font-size: 8.5px;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.5px;
+}
+
+.code-hash-sport {
+  font-family: monospace;
+  font-size: 14px;
+  font-weight: 900;
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: inline-block;
+  letter-spacing: 1px;
+}
+
+.sec-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #10b981;
+  font-weight: 700;
+}
+
+.sec-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.sec-notes {
+  font-size: 10px;
+  color: #94a3b8;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* BANNER SCOREBOARD TOTAL */
+.ticket-scoreboard-total {
+  background: linear-gradient(135deg, #052215 0%, #03120b 100%);
+  border-top: 1px solid rgba(16, 185, 129, 0.3);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 12px 22px;
   display: flex;
   justify-content: space-between;
-  border-bottom: 1px solid #f1f5f9;
-  padding-bottom: 4px;
+  align-items: center;
 }
 
-.ticket-row span {
+.total-label-box span {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  color: #6ee7b7;
+  letter-spacing: 0.8px;
+}
+
+.total-label-box small {
+  font-size: 10px;
   color: #64748b;
 }
 
-.ticket-row strong {
-  color: #1e293b;
+.total-amount-box {
+  font-size: 22px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  text-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
 }
 
-.total-row {
-  border-top: 2px solid #cbd5e1;
-  border-bottom: none;
-  padding-top: 8px;
-  margin-top: 4px;
-  font-size: 14px;
+.total-amount-box small {
+  font-size: 12px;
+  color: #10b981;
 }
 
-.total-price {
-  color: #15803d !important;
-  font-size: 16px;
-}
-
-.ticket-footer-notes {
-  margin-top: 14px;
-  font-size: 11px;
-  color: #64748b;
+/* PIE DE PÁGINA */
+.ticket-footer-disclaimer {
+  padding: 12px 20px 16px;
   text-align: center;
-  border-top: 1px dashed #cbd5e1;
-  padding-top: 10px;
+  font-size: 10px;
+  color: #64748b;
+  line-height: 1.4;
 }
 
+.ticket-footer-disclaimer p {
+  margin: 2px 0;
+}
+
+/* ── BOTONES DE ACCIÓN ── */
 .ticket-modal-actions {
   display: flex;
+  flex-direction: column;
   gap: 10px;
-  margin-top: 20px;
+  margin-top: 18px;
 }
 
 .btn-imprimir-ticket {
-  flex: 1;
-  background: #15803d;
-  color: white;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
   border: none;
   padding: 12px;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 14px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 13.5px;
   cursor: pointer;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);
+  transition: all 0.2s ease;
 }
 
-.btn-cerrar-ticket-sm {
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #cbd5e1;
-  padding: 10px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
+.btn-imprimir-ticket:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
 }
 
 .btn-calendar-link {
-  background: #0284c7;
-  color: white;
-  padding: 12px;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e2e8f0;
+  padding: 10px;
+  border-radius: 10px;
   font-weight: 700;
   font-size: 13px;
   text-decoration: none;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .btn-calendar-link:hover {
-  background: #0369a1;
-  color: white;
+  background: rgba(255, 255, 255, 0.16);
+  border-color: #38bdf8;
+  color: #ffffff;
+  transform: translateY(-1px);
 }
 
+.btn-cerrar-ticket-sm {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  padding: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.btn-cerrar-ticket-sm:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+/* ── IMPRESIÓN OFICIAL (@media print) ── */
 @media print {
   body * {
     visibility: hidden;
@@ -227,5 +593,30 @@
     left: 0;
     top: 0;
     width: 100%;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 2px solid #000000 !important;
+    box-shadow: none !important;
+  }
+  .ticket-matchday-header,
+  .ticket-stadium-gate-bar,
+  .ticket-court-highlight-box,
+  .ticket-fixture-grid div,
+  .ticket-scoreboard-total {
+    background: #f8fafc !important;
+    color: #000000 !important;
+    border-color: #cbd5e1 !important;
+  }
+  .ticket-brand-text h2,
+  .court-main-title,
+  .cell-value,
+  .total-amount-box {
+    color: #000000 !important;
+    text-shadow: none !important;
+  }
+  .code-hash-sport {
+    background: #f1f5f9 !important;
+    color: #000000 !important;
+    border-color: #000000 !important;
   }
 }

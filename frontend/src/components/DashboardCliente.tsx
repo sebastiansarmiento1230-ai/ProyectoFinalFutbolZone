@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import "./DashboardCliente.css";
 import * as XLSX from "xlsx";
 import { api, setStoredUser } from "../services/api";
@@ -21,6 +21,14 @@ function DashboardCliente({ usuario, onLogout, onGoToBooking }: DashboardCliente
   const [reservaParaTicket, setReservaParaTicket] = useState<any | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [mostrarModalRecuperar, setMostrarModalRecuperar] = useState<boolean>(false);
+
+  // 🔍 ESTADOS DE BÚSQUEDA Y FILTRADO DE RESERVAS (ETAPA 4)
+  const [filtroCancha, setFiltroCancha] = useState<string>("todas");
+  const [filtroFechaModo, setFiltroFechaModo] = useState<"todas" | "exacta" | "rango">("todas");
+  const [fechaExacta, setFechaExacta] = useState<string>("");
+  const [fechaDesde, setFechaDesde] = useState<string>("");
+  const [fechaHasta, setFechaHasta] = useState<string>("");
+  const [busquedaTexto, setBusquedaTexto] = useState<string>("");
 
   // Estados de edición de perfil
   const [nombre, setNombre] = useState<string>(usuario?.nombre || "");
@@ -83,12 +91,80 @@ function DashboardCliente({ usuario, onLogout, onGoToBooking }: DashboardCliente
     }
   };
 
+  // 🔍 Limpiar todos los filtros y restablecer el historial completo
+  const limpiarFiltros = () => {
+    setFiltroCancha("todas");
+    setFiltroFechaModo("todas");
+    setFechaExacta("");
+    setFechaDesde("");
+    setFechaHasta("");
+    setBusquedaTexto("");
+  };
+
+  const hayFiltrosActivos =
+    filtroCancha !== "todas" ||
+    (filtroFechaModo === "exacta" && !!fechaExacta) ||
+    (filtroFechaModo === "rango" && (!!fechaDesde || !!fechaHasta)) ||
+    busquedaTexto.trim() !== "";
+
+  // Conteo de reservas reales por cancha del usuario autenticado
+  const conteoCanchas = useMemo(() => {
+    let central = 0;
+    let norte = 0;
+    let sur = 0;
+    misReservas.forEach((r) => {
+      const nom = (r.cancha_nombre || "").toLowerCase();
+      if (nom.includes("central")) central++;
+      else if (nom.includes("norte")) norte++;
+      else if (nom.includes("sur")) sur++;
+    });
+    return { central, norte, sur, total: misReservas.length };
+  }, [misReservas]);
+
+  // Filtrado reactivo sobre las reservas reales del usuario que inició sesión
+  const misReservasFiltradas = useMemo(() => {
+    return misReservas.filter((r) => {
+      // 1. Filtro por cancha específica (Cancha Central, Cancha Norte, Cancha Sur)
+      if (filtroCancha !== "todas") {
+        const nom = (r.cancha_nombre || "").toLowerCase();
+        const f = filtroCancha.toLowerCase();
+        if (!nom.includes(f) && !f.includes(nom)) {
+          return false;
+        }
+      }
+
+      // 2. Filtro por fecha (Fecha específica o rango desde/hasta)
+      if (filtroFechaModo === "exacta" && fechaExacta) {
+        if (r.fecha !== fechaExacta) return false;
+      } else if (filtroFechaModo === "rango") {
+        if (fechaDesde && r.fecha < fechaDesde) return false;
+        if (fechaHasta && r.fecha > fechaHasta) return false;
+      }
+
+      // 3. Barra de búsqueda por texto
+      if (busquedaTexto.trim()) {
+        const query = busquedaTexto.trim().toLowerCase();
+        const coincideId = String(r.id).includes(query);
+        const coincideCancha = (r.cancha_nombre || "").toLowerCase().includes(query);
+        const coincideFecha = (r.fecha || "").includes(query);
+        const coincideEstado = (r.estado || "").toLowerCase().includes(query);
+        const coincideMetodo = (r.metodo_pago || "").toLowerCase().includes(query);
+        if (!coincideId && !coincideCancha && !coincideFecha && !coincideEstado && !coincideMetodo) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [misReservas, filtroCancha, filtroFechaModo, fechaExacta, fechaDesde, fechaHasta, busquedaTexto]);
+
   const exportarExcelMisReservas = () => {
-    if (misReservas.length === 0) {
-      alert("No tienes reservas registradas para exportar.");
+    const listaAExportar = hayFiltrosActivos ? misReservasFiltradas : misReservas;
+    if (listaAExportar.length === 0) {
+      alert("No tienes reservas registradas para exportar con los filtros seleccionados.");
       return;
     }
-    const dataFilas = misReservas.map((r) => {
+    const dataFilas = listaAExportar.map((r) => {
       const metodo = r.metodo_pago || (r.notas?.includes("NEQUI") ? "Nequi" : r.notas?.includes("DAVIPLATA") ? "Daviplata" : r.notas?.includes("TARJETA") ? "Tarjeta" : "Efectivo");
       return {
         "ID": r.id,
@@ -424,7 +500,15 @@ function DashboardCliente({ usuario, onLogout, onGoToBooking }: DashboardCliente
                       misReservas.slice(0, 5).map((r) => (
                         <tr key={r.id}>
                           <td><strong>#{r.id}</strong></td>
-                          <td><span className="fz-cancha-tag">{r.cancha_nombre || "Cancha Central"}</span></td>
+                          <td>
+                            <div className="fz-cancha-reserved-badge">
+                              <span className="fz-reserved-dot" />
+                              <strong className="fz-cancha-name-highlight">{r.cancha_nombre || "Cancha Central"}</strong>
+                            </div>
+                            <div className="fz-cancha-status-sub">
+                              <span>✓ Apartada</span>
+                            </div>
+                          </td>
                           <td>
                             {r.fecha}
                             <div className="fz-time-sub">{r.hora_inicio?.substring(0, 5)} - {r.hora_fin?.substring(0, 5)}</div>
@@ -458,22 +542,190 @@ function DashboardCliente({ usuario, onLogout, onGoToBooking }: DashboardCliente
           </div>
         )}
 
-        {/* ── TAB 2: TODAS MIS RESERVAS ── */}
+        {/* ── TAB 2: TODAS MIS RESERVAS (BÚSQUEDA Y FILTROS INTEGRADOS) ── */}
         {tabActiva === "reservas" && (
           <div className="fz-subview-card">
+            {/* CABECERA Y EXPORTACIÓN */}
             <div className="fz-table-filters">
               <div className="fz-filters-left">
-                <span className="fz-filter-title">Listado Completo de Reservas</span>
+                <span className="fz-filter-title">Historial de Turnos y Reservas</span>
+                <span className="fz-results-count-badge">
+                  Mostrando {misReservasFiltradas.length} de {misReservas.length} reservas
+                </span>
               </div>
-              <button
-                type="button"
-                className="fz-btn-export-excel"
-                onClick={exportarExcelMisReservas}
-              >
-                Descargar Historial (.xlsx)
-              </button>
+              <div className="fz-filters-right-actions">
+                {hayFiltrosActivos && (
+                  <button
+                    type="button"
+                    className="fz-btn-clear-filters"
+                    onClick={limpiarFiltros}
+                    title="Restablecer todos los filtros y ver historial completo"
+                  >
+                    ✕ Limpiar Filtros
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="fz-btn-export-excel"
+                  onClick={exportarExcelMisReservas}
+                  title="Exportar registros filtrados a archivo Excel (.xlsx)"
+                >
+                  Descargar (.xlsx)
+                </button>
+              </div>
             </div>
 
+            {/* ── BARRA DE BÚSQUEDA Y FILTRADO DEPORTIVO ── */}
+            <div className="fz-booking-filters-panel">
+              {/* 1. Barra de Búsqueda por Texto */}
+              <div className="fz-search-box-wrap">
+                <span className="fz-search-icon">🔍</span>
+                <input
+                  type="text"
+                  placeholder="Buscar por ID (#), cancha, fecha, estado o método de pago..."
+                  value={busquedaTexto}
+                  onChange={(e) => setBusquedaTexto(e.target.value)}
+                  className="fz-filter-search-input"
+                />
+                {busquedaTexto && (
+                  <button
+                    type="button"
+                    className="fz-btn-input-clear"
+                    onClick={() => setBusquedaTexto("")}
+                    title="Borrar búsqueda"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* 2. Filtro Rápido por Cancha Deportiva */}
+              <div className="fz-filter-section-row">
+                <span className="fz-filter-label">⚽ Cancha:</span>
+                <div className="fz-court-pills-row">
+                  <button
+                    type="button"
+                    className={`fz-court-pill ${filtroCancha === "todas" ? "active" : ""}`}
+                    onClick={() => setFiltroCancha("todas")}
+                  >
+                    Todas ({conteoCanchas.total})
+                  </button>
+                  <button
+                    type="button"
+                    className={`fz-court-pill ${filtroCancha === "Cancha Central" ? "active" : ""}`}
+                    onClick={() => setFiltroCancha(filtroCancha === "Cancha Central" ? "todas" : "Cancha Central")}
+                  >
+                    🏟️ Cancha Central ({conteoCanchas.central})
+                  </button>
+                  <button
+                    type="button"
+                    className={`fz-court-pill ${filtroCancha === "Cancha Norte" ? "active" : ""}`}
+                    onClick={() => setFiltroCancha(filtroCancha === "Cancha Norte" ? "todas" : "Cancha Norte")}
+                  >
+                    📍 Cancha Norte ({conteoCanchas.norte})
+                  </button>
+                  <button
+                    type="button"
+                    className={`fz-court-pill ${filtroCancha === "Cancha Sur" ? "active" : ""}`}
+                    onClick={() => setFiltroCancha(filtroCancha === "Cancha Sur" ? "todas" : "Cancha Sur")}
+                  >
+                    ⚡ Cancha Sur ({conteoCanchas.sur})
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. Filtro por Fecha (Puntual o Rango) */}
+              <div className="fz-filter-section-row fz-date-filter-row">
+                <span className="fz-filter-label">📅 Fecha:</span>
+                <div className="fz-date-mode-pills">
+                  <button
+                    type="button"
+                    className={`fz-date-mode-btn ${filtroFechaModo === "todas" ? "active" : ""}`}
+                    onClick={() => {
+                      setFiltroFechaModo("todas");
+                      setFechaExacta("");
+                      setFechaDesde("");
+                      setFechaHasta("");
+                    }}
+                  >
+                    Cualquier Fecha
+                  </button>
+                  <button
+                    type="button"
+                    className={`fz-date-mode-btn ${filtroFechaModo === "exacta" ? "active" : ""}`}
+                    onClick={() => setFiltroFechaModo("exacta")}
+                  >
+                    Fecha Específica
+                  </button>
+                  <button
+                    type="button"
+                    className={`fz-date-mode-btn ${filtroFechaModo === "rango" ? "active" : ""}`}
+                    onClick={() => setFiltroFechaModo("rango")}
+                  >
+                    Rango de Fechas
+                  </button>
+                </div>
+
+                {/* Input de Fecha Específica */}
+                {filtroFechaModo === "exacta" && (
+                  <div className="fz-date-picker-inline">
+                    <input
+                      type="date"
+                      value={fechaExacta}
+                      onChange={(e) => setFechaExacta(e.target.value)}
+                      className="fz-date-input"
+                    />
+                    {fechaExacta && (
+                      <button
+                        type="button"
+                        className="fz-btn-input-clear-sm"
+                        onClick={() => setFechaExacta("")}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Inputs de Rango (Desde / Hasta) */}
+                {filtroFechaModo === "rango" && (
+                  <div className="fz-date-range-inline">
+                    <div className="fz-date-range-field">
+                      <label>Desde:</label>
+                      <input
+                        type="date"
+                        value={fechaDesde}
+                        onChange={(e) => setFechaDesde(e.target.value)}
+                        className="fz-date-input"
+                      />
+                    </div>
+                    <div className="fz-date-range-field">
+                      <label>Hasta:</label>
+                      <input
+                        type="date"
+                        value={fechaHasta}
+                        onChange={(e) => setFechaHasta(e.target.value)}
+                        className="fz-date-input"
+                      />
+                    </div>
+                    {(fechaDesde || fechaHasta) && (
+                      <button
+                        type="button"
+                        className="fz-btn-input-clear-sm"
+                        onClick={() => {
+                          setFechaDesde("");
+                          setFechaHasta("");
+                        }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* TABLA DE RESULTADOS O ESTADO VACÍO AGRADABLE */}
             <div className="fz-table-responsive">
               <table className="fz-data-table">
                 <thead>
@@ -490,19 +742,49 @@ function DashboardCliente({ usuario, onLogout, onGoToBooking }: DashboardCliente
                 <tbody>
                   {misReservas.length === 0 ? (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: "center", padding: "35px", color: "#64748b" }}>
-                        No tienes reservas registradas en tu cuenta.
+                      <td colSpan={7} style={{ textAlign: "center", padding: "40px", color: "#64748b" }}>
+                        <div className="fz-empty-state-box">
+                          <span style={{ fontSize: "36px" }}>⚽</span>
+                          <h4>Aún no has registrado ninguna reserva</h4>
+                          <p>Reserva tu cancha favorita y aparecerá automáticamente en tu historial personal.</p>
+                          <button type="button" className="fz-btn-primary" onClick={onGoToBooking} style={{ marginTop: "12px" }}>
+                            Reservar Turno Ahora
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : misReservasFiltradas.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ textAlign: "center", padding: "40px", color: "#64748b" }}>
+                        <div className="fz-empty-state-box">
+                          <span style={{ fontSize: "36px" }}>🔍</span>
+                          <h4>No se encontraron reservas con esos criterios</h4>
+                          <p>No hay partidos registrados que coincidan con la cancha, fechas o texto buscado.</p>
+                          <button type="button" className="fz-btn-primary" onClick={limpiarFiltros} style={{ marginTop: "12px" }}>
+                            Restablecer Filtros y Ver Todas
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ) : (
-                    misReservas.map((r) => {
+                    misReservasFiltradas.map((r) => {
                       const metodo = r.metodo_pago || (r.notas?.includes("NEQUI") ? "Nequi" : r.notas?.includes("DAVIPLATA") ? "Daviplata" : r.notas?.includes("TARJETA") ? "Tarjeta" : "Efectivo");
                       return (
                         <tr key={r.id}>
                           <td><strong>#{r.id}</strong></td>
                           <td>
-                            <span className="fz-cancha-tag">{r.cancha_nombre || "Cancha Sintética"}</span>
-                            {r.notas && <div className="fz-row-notes">{r.notas}</div>}
+                            <div className="fz-cancha-reserved-badge">
+                              <span className="fz-reserved-dot" />
+                              <strong className="fz-cancha-name-highlight">{r.cancha_nombre || "Cancha Sintética"}</strong>
+                            </div>
+                            <div className="fz-cancha-status-sub">
+                              <span>✓ Cancha Apartada</span>
+                              {r.notas?.includes("Productos:") && !r.notas?.includes("Productos: Ninguno") && (
+                                <span className="fz-has-extras-pill" title="Servicios y productos adicionales registrados en el comprobante">
+                                  + Servicios Extras
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td>
                             {r.fecha}

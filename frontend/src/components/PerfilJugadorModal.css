@@ -1,0 +1,571 @@
+/* ===================================================
+   FUTBOLZONE — FICHA PROFESIONAL DE JUGADOR (FUT CARD)
+   =================================================== */
+
+.fz-modal-backdrop-profile {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.fz-modal-content-profile {
+  background: #0f172a;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: 24px;
+  width: 100%;
+  max-width: 950px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+  color: #ffffff;
+  padding: 30px;
+}
+
+.btn-close-modal-p {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #94a3b8;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.btn-close-modal-p:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.fz-profile-card-container {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 30px;
+  align-items: flex-start;
+}
+
+/* ── CARTA ESTILO FIFA / FUT SPORT CARD ── */
+.fz-fut-card {
+  background: linear-gradient(135deg, #062b18 0%, #0c4a2a 50%, #03180d 100%);
+  border: 2px solid #10b981;
+  border-radius: 22px;
+  padding: 22px;
+  box-shadow: 0 15px 35px rgba(16, 185, 129, 0.25), inset 0 0 25px rgba(16, 185, 129, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.fz-fut-card::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 45%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 55%
+  );
+  transform: rotate(35deg);
+  pointer-events: none;
+}
+
+.fut-card-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.fut-card-ovr {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.ovr-num {
+  font-size: 40px;
+  font-weight: 900;
+  color: #facc15;
+  text-shadow: 0 2px 10px rgba(250, 204, 21, 0.5);
+}
+
+.ovr-pos {
+  font-size: 14px;
+  font-weight: 800;
+  color: #6ee7b7;
+  letter-spacing: 1px;
+}
+
+.fut-card-dorsal {
+  font-size: 26px;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.fut-card-avatar-wrap {
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  border: 3px solid #10b981;
+  background: rgba(15, 23, 42, 0.8);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  margin: 10px 0;
+}
+
+.fut-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fut-card-name-band {
+  text-align: center;
+  width: 100%;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+.fut-card-name-band h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.fut-username {
+  font-size: 13px;
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+.fut-card-rating-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+
+.stars-gold {
+  color: #facc15;
+  font-size: 18px;
+  letter-spacing: 2px;
+}
+
+.rating-num {
+  font-size: 11.5px;
+  color: #cbd5e1;
+}
+
+.fut-attributes-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.att-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.att-label {
+  font-size: 9px;
+  color: #94a3b8;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.att-val {
+  font-size: 13px;
+  color: #10b981;
+}
+
+/* ── PANEL DETALLADO ── */
+.fz-profile-details-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pane-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pane-header-row h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.member-since {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.btn-toggle-edit {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid #10b981;
+  color: #6ee7b7;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-toggle-edit:hover {
+  background: #10b981;
+  color: #052e16;
+}
+
+.fz-profile-alert {
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fz-profile-alert.exito {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid #10b981;
+  color: #34d399;
+}
+
+.fz-profile-alert.error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid #ef4444;
+  color: #f87171;
+}
+
+/* Biografía y pills */
+.bio-paragraph h4,
+.opinions-section h4 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.bio-paragraph p {
+  margin: 0;
+  font-size: 13.5px;
+  color: #94a3b8;
+  line-height: 1.5;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.contact-pills {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.cpill {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+/* CALIFICACIÓN DE COMPAÑERO */
+.peer-rating-action-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(14, 165, 233, 0.1) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 14px;
+  padding: 14px 18px;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.peer-action-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.peer-action-text strong {
+  font-size: 14px;
+  color: #ffffff;
+}
+
+.peer-action-text span {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.btn-open-rate-peer {
+  background: #10b981;
+  color: #042f2e;
+  border: none;
+  font-weight: 800;
+  padding: 9px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 13px;
+}
+
+.btn-open-rate-peer:hover {
+  background: #34d399;
+}
+
+/* FORMULARIO DE VALORACIÓN */
+.peer-rating-form {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #10b981;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.peer-rating-form h4 {
+  margin: 0;
+  color: #34d399;
+  font-size: 14px;
+}
+
+.star-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.interactive-stars {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-star {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #475569;
+  cursor: pointer;
+  transition: transform 0.15s;
+  padding: 0;
+}
+
+.btn-star.filled {
+  color: #facc15;
+}
+
+.btn-star:hover {
+  transform: scale(1.2);
+}
+
+.stars-caption {
+  font-size: 13px;
+  color: #facc15;
+  font-weight: 700;
+}
+
+.peer-rating-form textarea {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid #334155;
+  border-radius: 10px;
+  color: #ffffff;
+  padding: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.btn-submit-rating {
+  background: #10b981;
+  color: #042f2e;
+  border: none;
+  font-weight: 800;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.btn-submit-rating:hover {
+  background: #34d399;
+}
+
+/* OPINIONES */
+.opinions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.opinion-item-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.op-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.op-stars {
+  color: #facc15;
+}
+
+.op-comment {
+  margin: 0;
+  font-size: 12.5px;
+  color: #cbd5e1;
+  font-style: italic;
+}
+
+.op-date {
+  font-size: 11px;
+  color: #64748b;
+  display: block;
+  margin-top: 4px;
+}
+
+/* FORMULARIO EDICIÓN */
+.fz-edit-profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-group-avatar-pick label,
+.f-field label {
+  display: block;
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.avatar-pick-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.avatar-choice {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.05);
+  transition: all 0.2s;
+}
+
+.avatar-choice.selected {
+  border-color: #10b981;
+  transform: scale(1.1);
+  box-shadow: 0 0 12px #10b981;
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.f-field input,
+.f-field select,
+.f-field textarea {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid #334155;
+  border-radius: 10px;
+  color: #ffffff;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.form-actions-bar {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.btn-save-profile {
+  background: #10b981;
+  color: #042f2e;
+  border: none;
+  font-weight: 800;
+  padding: 11px 22px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-cancel-edit {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #cbd5e1;
+  padding: 11px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .fz-profile-card-container { grid-template-columns: 1fr; }
+  .form-row-2, .form-row-3 { grid-template-columns: 1fr; }
+}

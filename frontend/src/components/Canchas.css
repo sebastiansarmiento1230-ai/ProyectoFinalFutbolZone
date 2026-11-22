@@ -1,111 +1,144 @@
 /* ===================================================
-   FUTBOLZONE — CATÁLOGO DE CANCHAS PREMIUM
+   FUTBOLZONE — CATÁLOGO DE CANCHAS DEPORTIVAS PROFESIONALES
    =================================================== */
 
 .canchas-container {
-  padding: 60px 20px;
-  max-width: 1200px;
+  padding: 70px 20px 80px;
+  max-width: 1220px;
   margin: 0 auto;
+  position: relative;
+}
+
+/* Marca sutil de líneas de campo y textura de césped en el fondo */
+.canchas-container::before {
+  content: "";
+  position: absolute;
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  height: 90%;
+  background: radial-gradient(ellipse at 50% 20%, rgba(16, 185, 129, 0.06) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .canchas-header {
   text-align: center;
-  margin-bottom: 35px;
+  margin-bottom: 45px;
+  position: relative;
+  z-index: 1;
 }
 
 .canchas-header h2 {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 900;
-  color: #0f172a;
-  margin: 0 0 8px;
-  letter-spacing: -0.5px;
+  color: #0b0f17;
+  margin: 0 0 10px;
+  letter-spacing: -0.8px;
 }
 
 .canchas-header p {
   color: #64748b;
   font-size: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .canchas-filter-bar {
   display: flex;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-top: 16px;
+  margin-top: 18px;
 }
 
 .btn-filter-pill {
-  background: #f1f5f9;
+  background: #ffffff;
   color: #475569;
   border: 1px solid #cbd5e1;
-  padding: 9px 20px;
+  padding: 10px 22px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(11, 15, 23, 0.04);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-filter-pill.active,
 .btn-filter-pill:hover {
-  background: #0f172a;
+  background: linear-gradient(135deg, #071f15 0%, #0d3827 100%);
   color: #ffffff;
-  border-color: #0f172a;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+  border-color: #10b981;
+  box-shadow: 0 6px 18px rgba(7, 31, 21, 0.25), 0 0 12px rgba(16, 185, 129, 0.3);
+  transform: translateY(-2px);
 }
 
 .canchas-loading {
   text-align: center;
-  padding: 40px;
+  padding: 50px;
   color: #64748b;
   font-size: 15px;
+  font-weight: 600;
 }
 
 .canchas-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 25px;
+  gap: 28px;
   justify-content: center;
+  position: relative;
+  z-index: 1;
 }
 
-/* Tarjeta limpia con imagen superior */
+/* Tarjeta atlética con textura deportiva y relieve de estadio */
 .cancha-card {
   background: #ffffff;
-  border-radius: 20px;
+  border-radius: 24px;
   overflow: hidden;
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  box-shadow: 0 12px 30px -4px rgba(4, 23, 14, 0.08),
+              0 0 0 1px rgba(226, 232, 240, 0.8);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   text-align: center;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease, border-color 0.3s ease;
   position: relative;
 }
 
 .cancha-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.09);
+  transform: translateY(-7px);
+  box-shadow: 0 22px 42px -6px rgba(4, 23, 14, 0.16),
+              0 0 25px rgba(16, 185, 129, 0.35);
   border-color: #10b981;
 }
 
 .cancha-card-image-container {
   position: relative;
   width: 100%;
-  height: 180px;
+  height: 200px;
   overflow: hidden;
+}
+
+/* Reflejo de foco de iluminación sobre la foto */
+.cancha-card-image-container::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(7, 31, 21, 0.1) 0%, rgba(7, 31, 21, 0.55) 100%);
+  pointer-events: none;
 }
 
 .cancha-card-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.4s ease;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .cancha-card:hover .cancha-card-img {
-  transform: scale(1.08);
+  transform: scale(1.1);
 }
 
 .cancha-card-badge {
@@ -116,13 +149,16 @@
   color: #ffffff;
   font-size: 11px;
   font-weight: 800;
-  padding: 4px 12px;
+  padding: 5px 14px;
   border-radius: 999px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35), 0 0 10px rgba(16, 185, 129, 0.4);
+  z-index: 2;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .cancha-card-body {
-  padding: 22px 22px 12px;
+  padding: 24px 22px 14px;
   flex: 1;
 }
 

@@ -39,3 +39,8 @@ def actualizar(id: int, body: ReservaUpdateSchema, db: Session = Depends(get_db)
 def cancelar(id: int, db: Session = Depends(get_db)):
     return delete_reserva(id, db)
 
+@router.patch("/{id}/estado")
+def cambiar_estado(id: int, estado: str, db: Session = Depends(get_db)):
+    body = ReservaUpdateSchema(estado=estado)
+    return update_reserva(id, body, db)
+

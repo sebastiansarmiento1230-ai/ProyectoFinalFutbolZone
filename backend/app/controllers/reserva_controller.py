@@ -17,13 +17,17 @@ def _reserva_dict(r: ReservaModel, con_nombres: bool = True):
         "hora_inicio": str(r.hora_inicio),
         "hora_fin": str(r.hora_fin),
         "precio_total": r.precio_total,
-        "estado": r.estado,
+        "estado": r.estado.value if hasattr(r.estado, "value") else str(r.estado),
         "notas": r.notas,
         "creado_en": str(r.creado_en) if r.creado_en else None
     }
     if con_nombres:
-        d["cliente"] = f"{r.usuario.nombre} {r.usuario.apellido}" if r.usuario else ""
-        d["cancha_nombre"] = r.cancha.nombre if r.cancha else ""
+        d["cliente"] = f"{r.usuario.nombre} {r.usuario.apellido}" if r.usuario else "Cliente"
+        d["cliente_email"] = r.usuario.email if r.usuario else ""
+        d["cliente_telefono"] = r.usuario.telefono if r.usuario else ""
+        d["cancha_nombre"] = r.cancha.nombre if r.cancha else "Cancha"
+        d["cancha_tipo"] = r.cancha.tipo if r.cancha else "Sintética"
+        d["cancha_precio_hora"] = r.cancha.precio_hora if r.cancha else 0
     return d
 
 

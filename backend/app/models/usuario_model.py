@@ -22,6 +22,15 @@ class UsuarioModel(Base):
     password_hash  = Column(String(255), nullable=False)
     rol            = Column(Enum(RolUsuario), default=RolUsuario.cliente)
     activo         = Column(Boolean, default=True)
+
+    # Campos de perfil deportivo del jugador
+    username       = Column(String(50), nullable=True)
+    posicion       = Column(String(50), default="Delantero")
+    pie_habil      = Column(String(20), default="Derecho")
+    dorsal         = Column(Integer, default=10)
+    bio            = Column(String(255), nullable=True)
+    avatar         = Column(String(255), nullable=True)
+
     creado_en      = Column(DateTime, server_default=func.now())
     actualizado_en = Column(DateTime, onupdate=func.now())
 

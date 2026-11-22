@@ -5,13 +5,17 @@
 :root {
   --primary: #10b981;
   --primary-dark: #059669;
+  --primary-neon: #00ff88;
   --bg-dark: #071f15;
-  --bg-dark-card: #0d2e20;
+  --bg-dark-card: #0b261b;
+  --bg-stadium-pitch: #04170e;
   --accent-gold: #f59e0b;
   --text-main: #0f172a;
   --text-muted: #64748b;
   --bg-light: #f8fafc;
   --card-border: rgba(226, 232, 240, 0.8);
+  --turf-shadow: 0 16px 36px rgba(4, 23, 14, 0.15);
+  --stadium-border-glow: 0 0 18px rgba(16, 185, 129, 0.25);
 }
 
 /* ── INTERACTIVIDAD & MICRO-ANIMACIONES GLOBALES ── */
@@ -28,9 +32,13 @@ button:active, .btn:active, .btn-primary-hero:active, .btn-secondary-hero:active
 }
 
 .app-main-wrapper {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: var(--text-main);
-  background-color: #ffffff;
+  background-color: #f8fafc;
+  background-image:
+    radial-gradient(ellipse at 50% 0%, rgba(16, 185, 129, 0.07) 0%, transparent 60%),
+    radial-gradient(circle at 100% 30%, rgba(5, 150, 105, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 0% 70%, rgba(5, 150, 105, 0.04) 0%, transparent 40%);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -43,19 +51,19 @@ button:active, .btn:active, .btn-primary-hero:active, .btn-secondary-hero:active
   user-select: none;
 }
 
-/* ── HEADER SUPERIOR FLOTANTE ── */
+/* ── HEADER SUPERIOR FLOTANTE ESTILO VIP STADIUM LOUNGE ── */
 .header-zone {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 14px 40px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
   position: sticky;
   top: 0;
   z-index: 900;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+  box-shadow: 0 4px 20px rgba(7, 31, 21, 0.05);
   transition: all 0.3s ease;
 }
 
@@ -175,28 +183,58 @@ button:active, .btn:active, .btn-primary-hero:active, .btn-secondary-hero:active
   transform: scale(1.2);
 }
 
-/* ── HERO BANNER PRINCIPAL ── */
+/* ── HERO BANNER PRINCIPAL: ESTADIO NOCTURNO & REFLECTORES ── */
 .banner {
-  background: linear-gradient(135deg, #071f15 0%, #0c3325 50%, #041c12 100%);
+  background:
+    /* Haces de luz de reflectores laterales de estadio */
+    radial-gradient(ellipse at 15% 10%, rgba(52, 211, 153, 0.32) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 10%, rgba(52, 211, 153, 0.32) 0%, transparent 45%),
+    radial-gradient(circle at 50% 100%, rgba(16, 185, 129, 0.22) 0%, transparent 65%),
+    /* Césped cortado a franjas diagonales de estadio */
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.015) 0px,
+      rgba(255, 255, 255, 0.015) 45px,
+      rgba(0, 0, 0, 0.04) 45px,
+      rgba(0, 0, 0, 0.04) 90px
+    ),
+    /* Gradiente base nocturno profundo de estadio */
+    linear-gradient(135deg, #051a10 0%, #08291a 45%, #05160e 100%);
   color: #ffffff;
-  padding: 85px 20px 95px;
+  padding: 95px 20px 105px;
   text-align: center;
   position: relative;
   overflow: hidden;
-  border-bottom-left-radius: 40px;
-  border-bottom-right-radius: 40px;
-  box-shadow: 0 12px 30px rgba(7, 31, 21, 0.2);
+  border-bottom-left-radius: 44px;
+  border-bottom-right-radius: 44px;
+  box-shadow: 0 20px 50px rgba(2, 18, 11, 0.45);
+  border-bottom: 2px solid rgba(16, 185, 129, 0.35);
 }
 
+/* Efecto de foco reflector cenital */
 .banner::before {
   content: "";
   position: absolute;
-  top: -50%;
+  top: -80px;
+  left: 0;
+  right: 0;
+  height: 220px;
+  background: radial-gradient(ellipse at center top, rgba(255, 255, 255, 0.15) 0%, rgba(16, 185, 129, 0.2) 35%, transparent 75%);
+  filter: blur(25px);
+  pointer-events: none;
+}
+
+/* Círculo central de campo de fútbol decorativo */
+.banner::after {
+  content: "";
+  position: absolute;
+  bottom: -130px;
   left: 50%;
   transform: translateX(-50%);
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.2) 0%, rgba(0, 0, 0, 0) 70%);
+  width: 460px;
+  height: 230px;
+  border: 2px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 230px 230px 0 0;
   pointer-events: none;
 }
 
@@ -215,30 +253,33 @@ button:active, .btn:active, .btn-primary-hero:active, .btn-secondary-hero:active
 
 .banner-badge {
   display: inline-block;
-  background: rgba(16, 185, 129, 0.18);
-  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.45);
   color: #6ee7b7;
   font-size: 13px;
   font-weight: 800;
-  padding: 6px 18px;
+  padding: 7px 20px;
   border-radius: 999px;
-  margin-bottom: 20px;
-  letter-spacing: 0.5px;
+  margin-bottom: 22px;
+  letter-spacing: 0.8px;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+  backdrop-filter: blur(8px);
 }
 
 .banner h2 {
-  font-size: 44px;
+  font-size: 46px;
   font-weight: 900;
   line-height: 1.15;
   margin: 0 0 18px;
   letter-spacing: -1px;
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
 }
 
 .banner p {
   font-size: 17px;
   color: #cbd5e1;
   line-height: 1.6;
-  margin: 0 auto 30px;
+  margin: 0 auto 32px;
   max-width: 680px;
 }
 
@@ -255,15 +296,16 @@ button:active, .btn:active, .btn-primary-hero:active, .btn-secondary-hero:active
   text-decoration: none;
   font-weight: 800;
   font-size: 15px;
-  padding: 14px 34px;
+  padding: 15px 36px;
   border-radius: 999px;
-  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.45), 0 0 20px rgba(16, 185, 129, 0.25);
   display: inline-block;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .btn-primary-hero:hover {
   transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 14px 30px rgba(16, 185, 129, 0.55);
+  box-shadow: 0 14px 32px rgba(16, 185, 129, 0.6), 0 0 30px rgba(16, 185, 129, 0.4);
 }
 
 .btn-secondary-hero {
@@ -275,35 +317,45 @@ button:active, .btn:active, .btn-primary-hero:active, .btn-secondary-hero:active
   font-weight: 700;
   font-size: 15px;
   cursor: pointer;
+  backdrop-filter: blur(8px);
 }
 
 .btn-secondary-hero:hover {
   background: rgba(255, 255, 255, 0.22);
   transform: translateY(-2px);
+  border-color: rgba(16, 185, 129, 0.5);
 }
 
-/* ── BARRA DE ESTADÍSTICAS RÁPIDAS ── */
+/* ── BARRA DE ESTADÍSTICAS RÁPIDAS (HUD DEPORTIVO) ── */
 .hero-stats-bar {
-  max-width: 1000px;
-  margin: -35px auto 40px;
-  background: #ffffff;
-  border-radius: 20px;
-  padding: 20px 30px;
-  box-shadow: 0 14px 30px -5px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  max-width: 1040px;
+  margin: -42px auto 45px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px);
+  border-radius: 24px;
+  padding: 22px 34px;
+  box-shadow: 0 16px 36px -4px rgba(4, 23, 14, 0.14),
+              0 0 0 1px rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.25);
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   text-align: center;
   position: relative;
   z-index: 10;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hero-stats-bar:hover {
+  box-shadow: 0 20px 45px -4px rgba(4, 23, 14, 0.2),
+              0 0 25px rgba(16, 185, 129, 0.3);
+  transform: translateY(-2px);
 }
 
 .hero-stat-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   transition: transform 0.2s ease;
 }
 
@@ -312,19 +364,23 @@ button:active, .btn:active, .btn-primary-hero:active, .btn-secondary-hero:active
 }
 
 .hero-stat-num {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 900;
   color: #071f15;
+  letter-spacing: -0.5px;
 }
 
 .hero-stat-num span {
   color: #10b981;
+  text-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
 }
 
 .hero-stat-desc {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 
 /* ── SECCIONES GENERALES ── */

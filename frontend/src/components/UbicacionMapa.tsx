@@ -594,7 +594,7 @@ function UbicacionMapa({ onSelectCancha }: UbicacionMapaProps) {
           {/* Canvas Interactivo del Mapa Leaflet */}
           <div className="fz-map-canvas-card">
             <div className="fz-map-overlay-badge">
-              <span>📍 {canchasSedes.length} Sedes Deportivas Activas</span>
+              <span>📍 {canchasSedes.length} Sedes Deportivas Activas {calculandoRuta ? "· ⏳ Trazando ruta..." : ""}</span>
             </div>
             <div ref={mapContainerRef} className="fz-leaflet-map-element"></div>
           </div>

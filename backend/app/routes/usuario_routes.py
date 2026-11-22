@@ -6,7 +6,8 @@ from app.schemas.usuario_schema import UsuarioSchema, UsuarioUpdateSchema, Usuar
 from app.controllers.usuario_controller import (
     get_usuarios, get_usuario, get_clientes,
     create_usuario, login_usuario,
-    update_usuario, delete_usuario, cambiar_rol
+    update_usuario, delete_usuario, cambiar_rol,
+    get_perfil_deportivo, update_perfil_deportivo, get_comunidad_jugadores
 )
 from app.utils.auth import get_admin_actual, get_usuario_actual
 
@@ -45,3 +46,16 @@ def cambiar_rol_usuario(id: int, rol: str, db: Session = Depends(get_db)):
 @router.delete("/{id}")
 def eliminar(id: int, db: Session = Depends(get_db)):
     return delete_usuario(id, db)
+
+# ── Perfil Deportivo & Comunidad ─────────────────────────
+@router.get("/comunidad/deportistas")
+def listar_comunidad(db: Session = Depends(get_db)):
+    return get_comunidad_jugadores(db)
+
+@router.get("/{id}/perfil-deportivo")
+def ver_perfil_deportivo(id: int, db: Session = Depends(get_db)):
+    return get_perfil_deportivo(id, db)
+
+@router.put("/{id}/perfil-deportivo")
+def guardar_perfil_deportivo(id: int, body: dict, db: Session = Depends(get_db)):
+    return update_perfil_deportivo(id, body, db)
