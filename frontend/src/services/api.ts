@@ -1,4 +1,14 @@
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || "/api";
+// Configuración de URL base: soporta BACKEND_URL inyectado por Vercel Multi-Service
+const rawBackendUrl =
+  (import.meta as any).env?.BACKEND_URL ||
+  (import.meta as any).env?.VITE_BACKEND_URL ||
+  (typeof process !== "undefined" && process.env?.BACKEND_URL) ||
+  (import.meta as any).env?.VITE_API_URL ||
+  "";
+
+export const API_BASE_URL = rawBackendUrl
+  ? rawBackendUrl.replace(/\/+$/, "") + (rawBackendUrl.endsWith("/api") ? "" : "/api")
+  : "/api";
 
 export const getAuthToken = (): string | null => {
   return localStorage.getItem("token");

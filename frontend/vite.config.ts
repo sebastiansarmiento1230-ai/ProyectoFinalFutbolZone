@@ -5,6 +5,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   base: './',
   plugins: [react()],
+  define: {
+    'process.env.BACKEND_URL': JSON.stringify(process.env.BACKEND_URL || ''),
+  },
   server: {
     host: true,
     port: 5173,
