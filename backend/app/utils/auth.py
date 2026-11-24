@@ -52,3 +52,8 @@ def get_admin_actual(payload: dict = Depends(get_usuario_actual)):
     if payload.get("rol") != "admin":
         raise HTTPException(status_code=403, detail="Se requiere rol administrador")
     return payload
+
+
+# Alias de compatibilidad para módulos existentes (ej. calificacion_routes)
+get_current_user = get_usuario_actual
+require_admin = get_admin_actual

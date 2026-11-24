@@ -3,6 +3,7 @@ import "./DashboardAdmin.css";
 import * as XLSX from "xlsx";
 import { api } from "../services/api";
 import { notificarAdmin, notificarCliente, notificarTodosLosUsuarios } from "../services/notifications";
+import NotificacionesPill from "./NotificacionesPill";
 
 interface DashboardAdminProps {
   onLogout: () => void;
@@ -211,34 +212,48 @@ function DashboardAdmin({ onLogout, onPublicarAnuncio }: DashboardAdminProps) {
       const res = await api.actualizarReserva(id, { estado: nuevoEstado });
       if (res.success) {
         const reservaModificada = reservas.find((r) => r.id === id);
-        const nomCancha = reservaModificada?.cancha_nombre || "la cancha";
-        const nomCliente = reservaModificada?.cliente || "Cliente";
-        const fechaRes = reservaModificada?.fecha || "la fecha agendada";
-        const usuarioId = reservaModificada?.usuario_id;
+        const nomCancha  = reservaModificada?.cancha_nombre || "la cancha";
+        const nomCliente = reservaModificada?.cliente || reservaModificada?.cliente_nombre || "Cliente";
+        const fechaRes   = reservaModificada?.fecha || "la fecha agendada";
+        const usuarioId  = reservaModificada?.usuario_id;
 
+        // Notificaciones localStorage (complementan las de BD)
         if (nuevoEstado === "confirmada") {
           notificarCliente(usuarioId, {
-            titulo: "Reserva Confirmada por la Sede",
+            titulo: "✅ Reserva Confirmada por la Sede",
             mensaje: `Tu reserva en ${nomCancha} para el ${fechaRes} ha sido CONFIRMADA. Te esperamos en la sede deportiva.`,
             tipo: "reserva",
             accionVista: "client_dashboard",
           });
           notificarAdmin({
             titulo: "Reserva Aprobada",
-            mensaje: `Se ha confirmado exitosamente la reserva #${id} (${nomCliente}).`,
+            mensaje: `Se confirmó exitosamente la reserva #${id} (${nomCliente}).`,
+            tipo: "reserva",
+            accionVista: "admin_dashboard",
+          });
+        } else if (nuevoEstado === "rechazada") {
+          notificarCliente(usuarioId, {
+            titulo: "❌ Solicitud Rechazada",
+            mensaje: `Tu solicitud para ${nomCancha} el ${fechaRes} fue rechazada por el administrador. Puedes consultar otros horarios.`,
+            tipo: "reserva",
+            accionVista: "client_dashboard",
+          });
+          notificarAdmin({
+            titulo: "Reserva Rechazada",
+            mensaje: `Se rechazó la reserva #${id} (${nomCliente}). El horario quedó disponible.`,
             tipo: "reserva",
             accionVista: "admin_dashboard",
           });
         } else if (nuevoEstado === "completada") {
           notificarCliente(usuarioId, {
-            titulo: "Partido Finalizado",
-            mensaje: `¡Gracias por jugar en FutbolZone! Tu partido en ${nomCancha} fue registrado como completado (+150 Puntos Zone).`,
+            titulo: "🏆 Partido Finalizado",
+            mensaje: `¡Gracias por jugar en FutbolZone! Tu partido en ${nomCancha} fue registrado como completado.`,
             tipo: "reserva",
             accionVista: "client_dashboard",
           });
         } else if (nuevoEstado === "cancelada") {
           notificarCliente(usuarioId, {
-            titulo: "Reserva Cancelada",
+            titulo: "🚫 Reserva Cancelada",
             mensaje: `Tu turno para el ${fechaRes} en ${nomCancha} fue cancelado por la administración.`,
             tipo: "reserva",
             accionVista: "client_dashboard",
@@ -250,6 +265,9 @@ function DashboardAdmin({ onLogout, onPublicarAnuncio }: DashboardAdminProps) {
             accionVista: "admin_dashboard",
           });
         }
+
+        // Dispatch evento para que las Pills en la misma sesión actualicen
+        window.dispatchEvent(new Event("fz_notification_update"));
         mostrarAlerta(`Estado de reserva #${id} actualizado a ${nuevoEstado.toUpperCase()}.`);
       }
       cargarDatosAdmin();
@@ -422,15 +440,20 @@ function DashboardAdmin({ onLogout, onPublicarAnuncio }: DashboardAdminProps) {
     }
   };
 
-  // Cálculos de métricas
+  // Cálculos de métricas reales sobre todas las reservas de la plataforma
   let totalIngresos = reservas
     .filter((r) => r.estado === "confirmada" || r.estado === "completada")
-    .reduce((sum, r) => sum + (Number(r.precio_total) || 50000), 0);
+    .reduce((sum, r) => sum + (Number(r.precio_total) || 0), 0);
 
   let totalReservasCount = reservas.length;
+  const pendientesCount = reservas.filter((r) => r.estado === "pendiente").length;
+  const confirmadasCount = reservas.filter((r) => r.estado === "confirmada").length;
+  const completadasCount = reservas.filter((r) => r.estado === "completada").length;
+  const canceladasCount = reservas.filter((r) => r.estado === "cancelada").length;
+  const rechazadasCount = reservas.filter((r) => r.estado === "rechazada").length;
   const canchasActivasCount = canchas.filter((c) => c.activa !== false).length;
-  let porcentajeOcupacion = canchasActivasCount > 0 ? Math.min(100, Math.round((totalReservasCount * 18) / (canchasActivasCount * 30) * 100)) || 68 : 68;
-  let subtituloPeriodo = "+18.4% vs mes anterior";
+  let porcentajeOcupacion = canchasActivasCount > 0 ? Math.min(100, Math.round((totalReservasCount * 18) / (canchasActivasCount * 30) * 100)) : 0;
+  let subtituloPeriodo = "Datos reales BD";
   let datosBarras = [
     { label: "ENE", v1: 35, v2: 65 },
     { label: "FEB", v1: 45, v2: 55 },
@@ -444,10 +467,15 @@ function DashboardAdmin({ onLogout, onPublicarAnuncio }: DashboardAdminProps) {
   ];
 
   if (periodoMetricas === "semana") {
-    totalIngresos = Math.round(totalIngresos * 0.28) || 350000;
-    totalReservasCount = Math.max(4, Math.round(totalReservasCount * 0.35));
-    porcentajeOcupacion = 84;
-    subtituloPeriodo = "+6.2% vs semana anterior";
+    const hace7Dias = new Date();
+    hace7Dias.setDate(hace7Dias.getDate() - 7);
+    const fechaLimite = hace7Dias.toISOString().split("T")[0];
+    const resSemana = reservas.filter((r) => (r.fecha || "") >= fechaLimite);
+    totalIngresos = resSemana
+      .filter((r) => r.estado === "confirmada" || r.estado === "completada")
+      .reduce((sum, r) => sum + (Number(r.precio_total) || 0), 0);
+    totalReservasCount = resSemana.length;
+    subtituloPeriodo = "Últimos 7 días";
     datosBarras = [
       { label: "LUN", v1: 55, v2: 45 },
       { label: "MAR", v1: 65, v2: 35 },
@@ -458,10 +486,7 @@ function DashboardAdmin({ onLogout, onPublicarAnuncio }: DashboardAdminProps) {
       { label: "DOM", v1: 90, v2: 10 },
     ];
   } else if (periodoMetricas === "ano") {
-    totalIngresos = Math.round(totalIngresos * 5.8) || 7250000;
-    totalReservasCount = Math.max(120, totalReservasCount * 6);
-    porcentajeOcupacion = 76;
-    subtituloPeriodo = "+34.8% crecimiento anual";
+    subtituloPeriodo = "Acumulado anual real";
     datosBarras = [
       { label: "2023", v1: 40, v2: 60 },
       { label: "2024", v1: 65, v2: 35 },
@@ -569,6 +594,7 @@ function DashboardAdmin({ onLogout, onPublicarAnuncio }: DashboardAdminProps) {
           </div>
 
           <div className="fz-header-actions">
+            <NotificacionesPill onNavigate={() => setTabActiva("reservas")} />
             {tabActiva === "canchas" && (
               <button
                 type="button"
@@ -1188,28 +1214,35 @@ function DashboardAdmin({ onLogout, onPublicarAnuncio }: DashboardAdminProps) {
                   className={`fz-filter-pill ${filtroEstadoReserva === "pendiente" ? "active" : ""}`}
                   onClick={() => setFiltroEstadoReserva("pendiente")}
                 >
-                  Pendientes
+                  Pendientes ({pendientesCount})
                 </button>
                 <button
                   type="button"
                   className={`fz-filter-pill ${filtroEstadoReserva === "confirmada" ? "active" : ""}`}
                   onClick={() => setFiltroEstadoReserva("confirmada")}
                 >
-                  Confirmadas
+                  Confirmadas ({confirmadasCount})
                 </button>
                 <button
                   type="button"
                   className={`fz-filter-pill ${filtroEstadoReserva === "completada" ? "active" : ""}`}
                   onClick={() => setFiltroEstadoReserva("completada")}
                 >
-                  Completadas
+                  Completadas ({completadasCount})
                 </button>
                 <button
                   type="button"
                   className={`fz-filter-pill ${filtroEstadoReserva === "cancelada" ? "active" : ""}`}
                   onClick={() => setFiltroEstadoReserva("cancelada")}
                 >
-                  Canceladas
+                  Canceladas ({canceladasCount})
+                </button>
+                <button
+                  type="button"
+                  className={`fz-filter-pill ${filtroEstadoReserva === "rechazada" ? "active" : ""}`}
+                  onClick={() => setFiltroEstadoReserva("rechazada")}
+                >
+                  ❌ Rechazadas ({rechazadasCount})
                 </button>
               </div>
 
@@ -1253,7 +1286,10 @@ function DashboardAdmin({ onLogout, onPublicarAnuncio }: DashboardAdminProps) {
                         <tr key={r.id}>
                           <td><strong>#{r.id}</strong></td>
                           <td>
-                            <strong>{r.cliente || "Cliente"}</strong>
+                            <strong>{r.cliente || r.cliente_nombre || "Cliente"}</strong>
+                            {r.cliente_email && (
+                              <div className="fz-time-sub">{r.cliente_email}</div>
+                            )}
                           </td>
                           <td>
                             <div className="fz-cancha-reserved-badge">
@@ -1288,53 +1324,78 @@ function DashboardAdmin({ onLogout, onPublicarAnuncio }: DashboardAdminProps) {
                           </td>
                           <td>
                             <span className={`fz-badge-status ${r.estado}`}>
-                              {r.estado === "confirmada" && "CONFIRMADA"}
-                              {r.estado === "pendiente" && "PENDIENTE"}
-                              {r.estado === "completada" && "COMPLETADA"}
-                              {r.estado === "cancelada" && "CANCELADA"}
-                              {!["confirmada", "pendiente", "completada", "cancelada"].includes(r.estado) && r.estado?.toUpperCase()}
+                              {r.estado === "confirmada"  && "✅ CONFIRMADA"}
+                              {r.estado === "pendiente"   && "⏳ PENDIENTE"}
+                              {r.estado === "completada"  && "🏆 COMPLETADA"}
+                              {r.estado === "cancelada"   && "🚫 CANCELADA"}
+                              {r.estado === "rechazada"   && "❌ RECHAZADA"}
+                              {!["confirmada","pendiente","completada","cancelada","rechazada"].includes(r.estado) && r.estado?.toUpperCase()}
                             </span>
                           </td>
                           <td>
                             <div className="fz-action-btns">
+                              {/* PENDIENTE → ACEPTAR o RECHAZAR */}
                               {r.estado === "pendiente" && (
-                                <button
-                                  type="button"
-                                  className="fz-btn-action-confirm"
-                                  onClick={() => cambiarEstadoReserva(r.id, "confirmada")}
-                                >
-                                  Confirmar
-                                </button>
+                                <>
+                                  <button
+                                    type="button"
+                                    className="fz-btn-action-confirm"
+                                    title="Aceptar reserva y notificar al cliente"
+                                    onClick={() => {
+                                      if (confirm(`¿Aceptar la reserva #${r.id} de ${r.cliente || r.cliente_nombre || "este cliente"}?`)) {
+                                        cambiarEstadoReserva(r.id, "confirmada");
+                                      }
+                                    }}
+                                  >
+                                    ✅ Aceptar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="fz-btn-action-cancel"
+                                    style={{ background: "rgba(127,29,29,0.3)", color: "#fca5a5", border: "1px solid #7f1d1d" }}
+                                    title="Rechazar solicitud y notificar al cliente"
+                                    onClick={() => {
+                                      if (confirm(`¿Rechazar la solicitud #${r.id} de ${r.cliente || r.cliente_nombre || "este cliente"}?`)) {
+                                        cambiarEstadoReserva(r.id, "rechazada");
+                                      }
+                                    }}
+                                  >
+                                    ❌ Rechazar
+                                  </button>
+                                </>
                               )}
+                              {/* CONFIRMADA → Completar */}
                               {r.estado === "confirmada" && (
                                 <button
                                   type="button"
                                   className="fz-btn-action-complete"
                                   onClick={() => cambiarEstadoReserva(r.id, "completada")}
                                 >
-                                  Completar
+                                  🏆 Completar
                                 </button>
                               )}
-                              {r.estado !== "cancelada" && r.estado !== "completada" && (
+                              {/* CONFIRMADA o PENDIENTE → Cancelar */}
+                              {(r.estado === "confirmada" || r.estado === "pendiente") && (
                                 <button
                                   type="button"
                                   className="fz-btn-action-cancel"
                                   onClick={() => {
-                                    if (confirm("¿Deseas cancelar esta reserva y liberar el horario?")) {
+                                    if (confirm("¿Cancelar esta reserva y liberar el horario?")) {
                                       cambiarEstadoReserva(r.id, "cancelada");
                                     }
                                   }}
                                 >
-                                  Cancelar
+                                  🚫 Cancelar
                                 </button>
                               )}
-                              {r.estado === "cancelada" && (
+                              {/* CANCELADA o RECHAZADA → Reabrir */}
+                              {(r.estado === "cancelada" || r.estado === "rechazada") && (
                                 <button
                                   type="button"
                                   className="fz-btn-action-confirm"
                                   onClick={() => cambiarEstadoReserva(r.id, "confirmada")}
                                 >
-                                  Reabrir
+                                  ♻️ Reabrir
                                 </button>
                               )}
                             </div>

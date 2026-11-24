@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
 from datetime import datetime
 
@@ -6,13 +6,28 @@ from datetime import datetime
 class UsuarioSchema(BaseModel):
     nombre:   str
     apellido: str
-    correo:   str
+    correo:   EmailStr
     password: str
     telefono: Optional[str] = None
 
+    @field_validator("nombre", "apellido")
+    @classmethod
+    def no_vacio(cls, v: str) -> str:
+        limpio = v.strip()
+        if not limpio:
+            raise ValueError("El campo no puede estar vacío")
+        return limpio
+
+    @field_validator("password")
+    @classmethod
+    def validar_password(cls, v: str) -> str:
+        if not v or len(v) < 6:
+            raise ValueError("La contraseña debe tener al menos 6 caracteres")
+        return v
+
 
 class UsuarioLoginSchema(BaseModel):
-    correo:   str
+    correo:   EmailStr
     password: str
 
 
@@ -24,13 +39,15 @@ class UsuarioUpdateSchema(BaseModel):
 
 
 class UsuarioOutSchema(BaseModel):
-    id:        int
-    nombre:    str
-    apellido:  str
-    correo:    str
-    telefono:  Optional[str]
-    rol:       str
-    activo:    bool
-    creado_en: Optional[datetime]
+    id:              int
+    uuid:            Optional[str] = None
+    nombre:          str
+    apellido:        str
+    nombre_completo: Optional[str] = None
+    correo:          str
+    telefono:        Optional[str]
+    rol:             str
+    activo:          bool
+    creado_en:       Optional[datetime]
 
     model_config = {"from_attributes": True}

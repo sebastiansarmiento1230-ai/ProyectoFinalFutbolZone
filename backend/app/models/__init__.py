@@ -8,3 +8,4 @@ from app.models.empleado_model import EmpleadoModel
 from app.models.resena_model import ResenaModel
 from app.models.password_reset_model import PasswordResetPinModel
 from app.models.calificacion_model import CalificacionJugadorModel, CalificacionServicioModel
+from app.models.notificacion_model import NotificacionModel

@@ -179,8 +179,13 @@ function App() {
             />
 
         <div className="header-buttons" style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-          {/* Campanita de Notificaciones */}
-          <NotificacionesPill onNavigate={(vistaDestino) => setVista(vistaDestino as VistaActual)} />
+          {/* Campanita de Notificaciones: visible únicamente con sesión iniciada */}
+          {usuario && (
+            <NotificacionesPill
+              key={usuario.id}
+              onNavigate={(vistaDestino) => setVista(vistaDestino as VistaActual)}
+            />
+          )}
 
           {usuario ? (
             <div className="user-session-pill">

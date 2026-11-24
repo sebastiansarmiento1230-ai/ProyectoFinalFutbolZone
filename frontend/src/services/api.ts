@@ -45,99 +45,18 @@ const MOCK_CANCHAS = [
   { id: 5, nombre: "Cancha Oeste", tipo: "Fútbol 7", descripcion: "Cancha techada con iluminación LED y graderías", capacidad_jugadores: 14, precio_hora: 65000, tiene_iluminacion: true, tiene_techo: true, activa: true },
 ];
 
-const SEED_RESERVAS = [
-  {
-    id: 101,
-    usuario_id: 2,
-    cancha_id: 1,
-    cancha_nombre: "Cancha Central",
-    fecha: "2026-11-25",
-    hora_inicio: "18:00",
-    hora_fin: "19:00",
-    precio_total: 62000,
-    estado: "confirmada",
-    cliente_nombre: "Carlos Díaz",
-    cliente_email: "cliente@futbolzone.com",
-    cliente_telefono: "3109876543",
-    notas: "Papas, Gatorade, Parqueadero",
-    incluye_kit: true,
-    incluye_arbitro: false,
-    metodo_pago: "Nequi",
-    referencia_pago: "NEQ-88910",
-    creado_en: "2026-11-20T10:00:00"
-  },
-  {
-    id: 102,
-    usuario_id: 2,
-    cancha_id: 2,
-    cancha_nombre: "Cancha Norte",
-    fecha: "2026-11-28",
-    hora_inicio: "20:00",
-    hora_fin: "21:00",
-    precio_total: 70000,
-    estado: "confirmada",
-    cliente_nombre: "Carlos Díaz",
-    cliente_email: "cliente@futbolzone.com",
-    cliente_telefono: "3109876543",
-    notas: "Sin adicionales",
-    incluye_kit: false,
-    incluye_arbitro: false,
-    metodo_pago: "Efectivo",
-    referencia_pago: "EFE-10293",
-    creado_en: "2026-11-21T15:30:00"
-  },
-  {
-    id: 103,
-    usuario_id: 2,
-    cancha_id: 3,
-    cancha_nombre: "Cancha Sur",
-    fecha: "2026-12-05",
-    hora_inicio: "16:00",
-    hora_fin: "18:00",
-    precio_total: 200000,
-    estado: "completada",
-    cliente_nombre: "Carlos Díaz",
-    cliente_email: "cliente@futbolzone.com",
-    cliente_telefono: "3109876543",
-    notas: "Arbitraje profesional, Chalecos oficiales",
-    incluye_kit: true,
-    incluye_arbitro: true,
-    metodo_pago: "Tarjeta",
-    referencia_pago: "TAR-44912",
-    creado_en: "2026-11-18T09:15:00"
-  },
-  {
-    id: 104,
-    usuario_id: 2,
-    cancha_id: 1,
-    cancha_nombre: "Cancha Central",
-    fecha: "2026-12-10",
-    hora_inicio: "19:00",
-    hora_fin: "20:00",
-    precio_total: 55000,
-    estado: "pendiente",
-    cliente_nombre: "Carlos Díaz",
-    cliente_email: "cliente@futbolzone.com",
-    cliente_telefono: "3109876543",
-    notas: "Gatorade x2",
-    incluye_kit: false,
-    incluye_arbitro: false,
-    metodo_pago: "Daviplata",
-    referencia_pago: "DAV-77123",
-    creado_en: "2026-11-22T08:00:00"
-  }
-];
+const SEED_RESERVAS: any[] = [];
 
 function getLocalReservas(): any[] {
   try {
     const raw = localStorage.getItem("fz_expo_reservas");
     if (!raw) {
-      localStorage.setItem("fz_expo_reservas", JSON.stringify(SEED_RESERVAS));
-      return SEED_RESERVAS;
+      return [];
     }
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return SEED_RESERVAS;
+    return [];
   }
 }
 
@@ -183,16 +102,21 @@ function handleOfflineExpoFallback(endpoint: string, options: RequestInit = {}):
     return { success: true, data: MOCK_CANCHAS };
   }
 
-  // Mis Reservas
+  // Mis Reservas (estrictamente filtradas por usuario autenticado)
   if (endpoint.startsWith("/reservas/mis-reservas")) {
+    if (!storedUser?.id) {
+      return { success: true, data: [] };
+    }
     const list = getLocalReservas();
-    const userId = storedUser?.id || 2;
-    const mis = list.filter((r) => r.usuario_id === userId || userId === 1);
-    return { success: true, data: mis.length > 0 ? mis : list };
+    const mis = list.filter((r) => r.usuario_id === storedUser.id);
+    return { success: true, data: mis };
   }
 
-  // Todas las reservas (Admin)
+  // Todas las reservas (Solo Admin)
   if (endpoint.startsWith("/reservas") && method === "GET") {
+    if (storedUser?.rol !== "admin") {
+      return { success: false, message: "No autorizado", data: [] };
+    }
     return { success: true, data: getLocalReservas() };
   }
 
@@ -209,7 +133,7 @@ function handleOfflineExpoFallback(endpoint: string, options: RequestInit = {}):
       hora_inicio: body.hora_inicio,
       hora_fin: body.hora_fin,
       precio_total: body.precio_total || (cMatch ? cMatch.precio_hora : 50000),
-      estado: "confirmada",
+      estado: "pendiente",
       cliente_nombre: `${storedUser?.nombre || "Carlos"} ${storedUser?.apellido || "Díaz"}`,
       cliente_email: storedUser?.email || "cliente@futbolzone.com",
       cliente_telefono: storedUser?.telefono || "3109876543",
@@ -256,7 +180,16 @@ function handleOfflineExpoFallback(endpoint: string, options: RequestInit = {}):
 
   // Reportes
   if (endpoint.startsWith("/reportes/resumen")) {
-    return { success: true, data: { total_reservas: 4, ingresos_totales: 387000, canchas_activas: 5, clientes_totales: 2 } };
+    const list = getLocalReservas();
+    return {
+      success: true,
+      data: {
+        total_reservas: list.length,
+        ingresos_totales: list.reduce((acc, r) => acc + (Number(r.precio_total) || 0), 0),
+        canchas_activas: MOCK_CANCHAS.length,
+        clientes_totales: MOCK_USUARIOS.filter((u) => u.rol === "cliente").length,
+      },
+    };
   }
   if (endpoint.startsWith("/reportes/reservas-por-cancha")) {
     return { success: true, data: [{ cancha: "Cancha Central", total: 2 }, { cancha: "Cancha Norte", total: 1 }, { cancha: "Cancha Sur", total: 1 }] };
@@ -266,6 +199,14 @@ function handleOfflineExpoFallback(endpoint: string, options: RequestInit = {}):
   }
 
   // Reseñas y otros
+  // Notificaciones offline
+  if (endpoint.startsWith("/notificaciones/conteo")) {
+    return { success: true, data: { count: 0 } };
+  }
+  if (endpoint.startsWith("/notificaciones")) {
+    return { success: true, data: [] };
+  }
+
   return { success: true, data: [], message: "OK" };
 }
 
@@ -489,4 +430,17 @@ export const api = {
     request<any>(`/reservas/${id}/estado?estado=${estado}`, {
       method: "PATCH",
     }),
+
+  // ── NOTIFICACIONES (BD real) ───────────────────────────────────────────
+  obtenerNotificaciones: (soloNoLeidas: boolean = false) =>
+    request<any>(`/notificaciones/?solo_no_leidas=${soloNoLeidas}`),
+
+  conteoNotificaciones: () =>
+    request<any>("/notificaciones/conteo"),
+
+  marcarNotificacionLeida: (id: number) =>
+    request<any>(`/notificaciones/${id}/leer`, { method: "PATCH" }),
+
+  marcarTodasLeidas: () =>
+    request<any>("/notificaciones/leer-todas", { method: "PATCH" }),
 };

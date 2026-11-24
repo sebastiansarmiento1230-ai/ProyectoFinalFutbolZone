@@ -1,153 +1,191 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import "./NotificacionesPill.css";
-import { getStoredUser } from "../services/api";
-import type { NotificacionItem } from "../services/notifications";
+import { getStoredUser, getAuthToken, api } from "../services/api";
+
+interface NotifItem {
+  id: string | number;
+  titulo: string;
+  mensaje: string;
+  fecha: string;
+  leida: boolean;
+  tipo: string;
+  accionVista?: string;
+  creado_en?: string;
+}
 
 interface NotificacionesPillProps {
   onNavigate?: (vista: string) => void;
 }
 
+const POLL_MS = 30_000; // polling cada 30 segundos
+
+function formatFecha(raw: string | undefined): string {
+  if (!raw) return "Ahora";
+  try {
+    const d = new Date(raw);
+    const hoy = new Date();
+    const ayer = new Date();
+    ayer.setDate(hoy.getDate() - 1);
+    if (d.toDateString() === hoy.toDateString()) {
+      return `Hoy, ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+    }
+    if (d.toDateString() === ayer.toDateString()) {
+      return `Ayer, ${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+    }
+    return d.toLocaleDateString("es-CO", { day: "2-digit", month: "short" });
+  } catch {
+    return raw;
+  }
+}
+
 function NotificacionesPill({ onNavigate }: NotificacionesPillProps) {
-  const [abierto, setAbierto] = useState<boolean>(false);
-  const [notificaciones, setNotificaciones] = useState<NotificacionItem[]>([]);
+  const [abierto, setAbierto]           = useState<boolean>(false);
+  const [notificaciones, setNotifs]     = useState<NotifItem[]>([]);
+  const [cargando, setCargando]         = useState<boolean>(false);
   const usuario = getStoredUser();
+  const tieneToken = !!getAuthToken();
 
-  useEffect(() => {
-    cargarNotificaciones();
+  // ── CARGA DESDE API ────────────────────────────────────────────
+  const cargarDesdeApi = useCallback(async () => {
+    if (!tieneToken || !usuario?.id) {
+      setNotifs([]);
+      return;
+    }
+    try {
+      const res = await api.obtenerNotificaciones(false);
+      if (res.success && Array.isArray(res.data)) {
+        const mapeadas: NotifItem[] = res.data.map((n: any) => ({
+          id: n.id,
+          titulo: n.titulo,
+          mensaje: n.mensaje,
+          fecha: formatFecha(n.creado_en),
+          leida: !!n.leida,
+          tipo: n.tipo || "reserva",
+          accionVista: n.tipo === "reserva" && usuario?.rol === "admin"
+            ? "admin_dashboard"
+            : "client_dashboard",
+          creado_en: n.creado_en,
+        }));
+        setNotifs(mapeadas);
+        return;
+      }
+    } catch {
+      // fallback a localStorage si API no responde
+    }
+    cargarDesdeLocal();
+  }, [tieneToken, usuario?.id, usuario?.rol]);
 
-    const handleUpdate = () => {
-      cargarNotificaciones();
-    };
-
-    window.addEventListener("fz_notification_update", handleUpdate);
-    window.addEventListener("storage", handleUpdate);
-
-    return () => {
-      window.removeEventListener("fz_notification_update", handleUpdate);
-      window.removeEventListener("storage", handleUpdate);
-    };
-  }, [usuario?.id, usuario?.rol]);
-
-  const cargarNotificaciones = () => {
-    const claveStorage = usuario?.rol === "admin"
+  // ── FALLBACK localStorage (estrictamente por usuario) ──────────
+  const cargarDesdeLocal = useCallback(() => {
+    if (!usuario?.id) {
+      setNotifs([]);
+      return;
+    }
+    const clave = usuario?.rol === "admin"
       ? "fz_notifs_admin"
-      : `fz_notifs_${usuario?.id || "guest"}`;
-
-    const guardadas = localStorage.getItem(claveStorage);
-
-    if (guardadas) {
-      try {
-        const parsed = JSON.parse(guardadas);
-        if (Array.isArray(parsed)) {
-          setNotificaciones(parsed);
+      : `fz_notifs_${usuario.id}`;
+    try {
+      const raw = localStorage.getItem(clave);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setNotifs(parsed);
           return;
         }
-      } catch {
-        // Fallback si hay error de parseo
       }
-    }
+    } catch {}
+    // Si no hay nada, lista vacía
+    setNotifs([]);
+  }, [usuario?.id, usuario?.rol]);
 
-    // Iniciales si no hay nada en storage
-    let iniciales: NotificacionItem[] = [];
+  // ── CARGA INICIAL + POLLING ────────────────────────────────────
+  useEffect(() => {
+    cargarDesdeApi();
 
-    if (usuario?.rol === "admin") {
-      iniciales = [
-        {
-          id: "notif_adm_1",
-          titulo: "Panel de Administración Operativo",
-          mensaje: "Todas las canchas (Fútbol 5, 7 y 11) están sincronizadas con la base de datos.",
-          fecha: "Hoy",
-          leida: false,
-          tipo: "sistema",
-          accionVista: "admin_dashboard",
-        },
-        {
-          id: "notif_adm_2",
-          titulo: "Control de Turnos en Vivo",
-          mensaje: "Puedes revisar, confirmar o liquidar las reservas registradas por los clientes.",
-          fecha: "Hoy",
-          leida: false,
-          tipo: "reserva",
-          accionVista: "admin_dashboard",
-        },
-      ];
-    } else if (usuario) {
-      iniciales = [
-        {
-          id: "notif_cli_1",
-          titulo: "Bienvenido a FutbolZone",
-          mensaje: `Hola ${usuario.nombre}, explora el catálogo de canchas y agenda tu turno en tiempo real.`,
-          fecha: "Hoy",
-          leida: false,
-          tipo: "sistema",
-          accionVista: "client_dashboard",
-        },
-        {
-          id: "notif_cli_2",
-          titulo: "Cupón de Descuento SENA20",
-          mensaje: "Usa el cupón SENA20 para obtener 20% de descuento en tu próxima reserva.",
-          fecha: "Hoy",
-          leida: false,
-          tipo: "promocion",
-          accionVista: "landing",
-        },
-      ];
-    } else {
-      iniciales = [
-        {
-          id: "notif_gst_1",
-          titulo: "Reserva Canchas en Tiempo Real",
-          mensaje: "Canchas sintéticas de Fútbol 5, 7 y 11 disponibles con iluminación LED nocturna.",
-          fecha: "Hoy",
-          leida: false,
-          tipo: "sistema",
-          accionVista: "landing",
-        },
-      ];
-    }
+    const handleEvento = () => cargarDesdeApi();
+    window.addEventListener("fz_notification_update", handleEvento);
+    window.addEventListener("storage", handleEvento);
 
-    setNotificaciones(iniciales);
-    localStorage.setItem(claveStorage, JSON.stringify(iniciales));
-  };
+    const intervalo = setInterval(cargarDesdeApi, POLL_MS);
 
-  const guardarNotifs = (nuevas: NotificacionItem[]) => {
-    setNotificaciones(nuevas);
-    const claveStorage = usuario?.rol === "admin"
+    return () => {
+      window.removeEventListener("fz_notification_update", handleEvento);
+      window.removeEventListener("storage", handleEvento);
+      clearInterval(intervalo);
+    };
+  }, [cargarDesdeApi]);
+
+  // ── ACCIONES ───────────────────────────────────────────────────
+  const marcarUnaLeida = async (notif: NotifItem) => {
+    // Optimista: actualizar UI inmediatamente
+    setNotifs((prev) => prev.map((n) => n.id === notif.id ? { ...n, leida: true } : n));
+
+    // Intentar marcar en BD
+    try {
+      if (tieneToken && typeof notif.id === "number") {
+        await api.marcarNotificacionLeida(notif.id as number);
+      }
+    } catch {}
+
+    // También en localStorage (fallback)
+    const clave = usuario?.rol === "admin"
       ? "fz_notifs_admin"
       : `fz_notifs_${usuario?.id || "guest"}`;
-    localStorage.setItem(claveStorage, JSON.stringify(nuevas));
-    window.dispatchEvent(new Event("fz_notification_update"));
-  };
+    try {
+      const raw = localStorage.getItem(clave);
+      if (raw) {
+        const lista = JSON.parse(raw);
+        const updated = lista.map((n: any) => n.id === notif.id ? { ...n, leida: true } : n);
+        localStorage.setItem(clave, JSON.stringify(updated));
+      }
+    } catch {}
 
-  const noLeidas = notificaciones.filter((n) => !n.leida).length;
-
-  const marcarTodasLeidas = () => {
-    const actualizadas = notificaciones.map((n) => ({ ...n, leida: true }));
-    guardarNotifs(actualizadas);
-  };
-
-  const limpiarNotificaciones = () => {
-    guardarNotifs([]);
-  };
-
-  const hacerClicNotif = (notif: NotificacionItem) => {
-    const actualizadas = notificaciones.map((n) =>
-      n.id === notif.id ? { ...n, leida: true } : n
-    );
-    guardarNotifs(actualizadas);
     setAbierto(false);
-
     if (notif.accionVista && onNavigate) {
       onNavigate(notif.accionVista);
     }
   };
+
+  const marcarTodasLeidas = async () => {
+    setNotifs((prev) => prev.map((n) => ({ ...n, leida: true })));
+    try {
+      if (tieneToken) await api.marcarTodasLeidas();
+    } catch {}
+    // localStorage
+    const clave = usuario?.rol === "admin"
+      ? "fz_notifs_admin"
+      : `fz_notifs_${usuario?.id || "guest"}`;
+    try {
+      const raw = localStorage.getItem(clave);
+      if (raw) {
+        const lista = JSON.parse(raw);
+        localStorage.setItem(clave, JSON.stringify(lista.map((n: any) => ({ ...n, leida: true }))));
+      }
+    } catch {}
+    window.dispatchEvent(new Event("fz_notification_update"));
+  };
+
+  const limpiarNotificaciones = () => {
+    setNotifs([]);
+    const clave = usuario?.rol === "admin"
+      ? "fz_notifs_admin"
+      : `fz_notifs_${usuario?.id || "guest"}`;
+    localStorage.removeItem(clave);
+    window.dispatchEvent(new Event("fz_notification_update"));
+  };
+
+  if (!tieneToken || !usuario?.id) {
+    return null;
+  }
+
+  const noLeidas = notificaciones.filter((n) => !n.leida).length;
 
   return (
     <div className="fz-notif-wrapper">
       <button
         type="button"
         className={`fz-btn-bell ${noLeidas > 0 ? "has-unread" : ""}`}
-        onClick={() => setAbierto(!abierto)}
+        onClick={() => { setAbierto(!abierto); if (!abierto) cargarDesdeApi(); }}
         title={`Notificaciones (${noLeidas} nuevas)`}
         aria-label="Notificaciones"
       >
@@ -169,11 +207,7 @@ function NotificacionesPill({ onNavigate }: NotificacionesPillProps) {
             </div>
             <div className="fz-notif-header-actions">
               {noLeidas > 0 && (
-                <button
-                  type="button"
-                  className="fz-btn-mark-all"
-                  onClick={marcarTodasLeidas}
-                >
+                <button type="button" className="fz-btn-mark-all" onClick={marcarTodasLeidas}>
                   Marcar leídas
                 </button>
               )}
@@ -192,20 +226,26 @@ function NotificacionesPill({ onNavigate }: NotificacionesPillProps) {
             {notificaciones.length === 0 ? (
               <div className="fz-notif-empty">
                 <p>No tienes notificaciones pendientes.</p>
+                <small style={{ color: "#64748b", fontSize: "11px" }}>
+                  {usuario?.rol === "admin"
+                    ? "Las notificaciones aparecen aquí cuando los clientes realicen o cancelen reservas."
+                    : "Las notificaciones aparecen aquí cuando el administrador gestione tus reservas."}
+                </small>
               </div>
             ) : (
               notificaciones.map((n) => (
                 <div
                   key={n.id}
                   className={`fz-notif-item ${n.leida ? "leida" : "unread"}`}
-                  onClick={() => hacerClicNotif(n)}
+                  onClick={() => marcarUnaLeida(n)}
                 >
                   <div className="fz-notif-item-top">
                     <span className={`fz-notif-type-tag ${n.tipo}`}>
-                      {n.tipo === "reserva" && "RESERVA"}
-                      {n.tipo === "sistema" && "SISTEMA"}
+                      {n.tipo === "reserva"  && "RESERVA"}
+                      {n.tipo === "sistema"  && "SISTEMA"}
                       {n.tipo === "promocion" && "PROMOCIÓN"}
-                      {n.tipo === "pago" && "PAGO"}
+                      {n.tipo === "promo"    && "PROMOCIÓN"}
+                      {n.tipo === "pago"     && "PAGO"}
                       {n.tipo === "seguridad" && "SEGURIDAD"}
                     </span>
                     <span className="fz-notif-time">{n.fecha}</span>
@@ -219,12 +259,12 @@ function NotificacionesPill({ onNavigate }: NotificacionesPillProps) {
 
           {notificaciones.length > 0 && (
             <div className="fz-notif-footer">
-              <button
-                type="button"
-                className="fz-btn-clear-notifs"
-                onClick={limpiarNotificaciones}
-              >
+              <button type="button" className="fz-btn-clear-notifs" onClick={limpiarNotificaciones}>
                 Limpiar historial
+              </button>
+              <button type="button" className="fz-btn-clear-notifs" onClick={cargarDesdeApi}
+                style={{ marginLeft: "8px", background: "#1e293b" }}>
+                🔄 Actualizar
               </button>
             </div>
           )}

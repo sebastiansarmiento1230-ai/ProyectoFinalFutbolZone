@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.config.database import engine, Base
+from app.config.database import engine, Base, run_migrations, check_db_connection
 import app.models  # Registra todos los modelos
 
 from app.routes.usuario_routes  import router as usuario_router
@@ -25,6 +25,7 @@ from app.routes.reporte_routes  import router as reporte_router
 from app.routes.resena_routes   import router as resena_router
 from app.routes.password_reset_routes import router as password_reset_router
 from app.routes.calificacion_routes import router as calificacion_router
+from app.routes.notificacion_routes import router as notificacion_router
 
 from app.middleware.error_handler import (
     http_exception_handler,
@@ -36,6 +37,7 @@ from app.middleware.error_handler import (
 # CREAR TABLAS Y DATOS INICIALES AUTOMÁTICAMENTE
 # ================================================
 Base.metadata.create_all(bind=engine)
+run_migrations()
 
 def _seed_db():
     from app.config.database import SessionLocal
@@ -51,6 +53,7 @@ def _seed_db():
             admin = UsuarioModel(
                 nombre="Admin",
                 apellido="FutbolZone",
+                nombre_completo="Admin FutbolZone",
                 email="admin@futbolzone.com",
                 password_hash=hash_password("admin123"),
                 rol=RolUsuario.admin
@@ -58,6 +61,7 @@ def _seed_db():
             cliente = UsuarioModel(
                 nombre="Carlos",
                 apellido="Díaz",
+                nombre_completo="Carlos Díaz",
                 email="cliente@futbolzone.com",
                 password_hash=hash_password("cliente123"),
                 rol=RolUsuario.cliente
@@ -134,6 +138,7 @@ app.include_router(reporte_router)
 app.include_router(resena_router)
 app.include_router(password_reset_router)
 app.include_router(calificacion_router)
+app.include_router(notificacion_router)
 
 
 @app.get("/", tags=["Root"])
@@ -142,6 +147,7 @@ def root():
         "success": True,
         "message": "FutbolZone API funcionando ⚽",
         "version": "1.0.0",
+        "db_connected": check_db_connection(),
         "docs": "/docs"
     }
 
