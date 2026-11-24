@@ -7,6 +7,7 @@ import TicketReservaModal from "./TicketReservaModal";
 import TorneosView from "./TorneosView";
 import TablonRetos from "./TablonRetos";
 import RecuperarPasswordModal from "./RecuperarPasswordModal";
+import NotificacionesPill from "./NotificacionesPill";
 
 interface DashboardClienteProps {
   usuario: any;
@@ -45,7 +46,7 @@ function DashboardCliente({ usuario, onLogout, onGoToBooking }: DashboardCliente
 
   useEffect(() => {
     cargarReservas();
-  }, []);
+  }, [usuario?.id]);
 
   const cargarReservas = async () => {
     setCargando(true);
@@ -250,11 +251,15 @@ function DashboardCliente({ usuario, onLogout, onGoToBooking }: DashboardCliente
     }
   };
 
-  // Cálculos de métricas reales
+  // Cálculos de métricas reales (exclusivamente de este usuario)
   const reservasValidas = misReservas.filter((r) => r.estado === "confirmada" || r.estado === "completada");
   const totalInvertidoReal = reservasValidas.reduce((sum, r) => sum + (Number(r.precio_total) || 0), 0);
   const partidosJugadosReal = misReservas.filter((r) => r.estado === "completada").length;
   const reservasActivas = misReservas.filter((r) => r.estado === "confirmada" || r.estado === "pendiente");
+  const totalReservasReal = misReservas.length;
+  const pendientesReal = misReservas.filter((r) => r.estado === "pendiente").length;
+  const confirmadasReal = misReservas.filter((r) => r.estado === "confirmada").length;
+  const rechazadasReal = misReservas.filter((r) => r.estado === "rechazada").length;
 
   let rolBadge = "JUGADOR TITULAR";
   if (partidosJugadosReal >= 10) {
@@ -375,6 +380,10 @@ function DashboardCliente({ usuario, onLogout, onGoToBooking }: DashboardCliente
           </div>
 
           <div className="fz-client-top-actions">
+            <NotificacionesPill
+              key={usuario?.id}
+              onNavigate={() => setTabActiva("reservas")}
+            />
             <button type="button" className="fz-btn-primary" onClick={onGoToBooking}>
               + Nueva Reserva
             </button>
@@ -429,6 +438,45 @@ function DashboardCliente({ usuario, onLogout, onGoToBooking }: DashboardCliente
                 </div>
                 <div className="fz-kpi-value">{partidosJugadosReal * 150} pts</div>
                 <div className="fz-kpi-sub">Canjeables por kits y descuentos</div>
+              </div>
+            </div>
+
+            {/* Desglose Personal de Estados de Reserva */}
+            <div className="fz-kpi-grid" style={{ marginTop: "14px" }}>
+              <div className="fz-kpi-card">
+                <div className="fz-kpi-top">
+                  <span className="fz-kpi-label">TOTAL RESERVAS</span>
+                  <span className="fz-kpi-badge-neutral">HISTORIAL</span>
+                </div>
+                <div className="fz-kpi-value">{totalReservasReal}</div>
+                <div className="fz-kpi-sub">Solicitudes registradas en tu cuenta</div>
+              </div>
+
+              <div className="fz-kpi-card">
+                <div className="fz-kpi-top">
+                  <span className="fz-kpi-label">PENDIENTES</span>
+                  <span className="fz-kpi-badge-neutral">POR APROBAR</span>
+                </div>
+                <div className="fz-kpi-value">{pendientesReal}</div>
+                <div className="fz-kpi-sub">Esperando respuesta del administrador</div>
+              </div>
+
+              <div className="fz-kpi-card">
+                <div className="fz-kpi-top">
+                  <span className="fz-kpi-label">CONFIRMADAS</span>
+                  <span className="fz-kpi-badge-success">APROBADAS</span>
+                </div>
+                <div className="fz-kpi-value">{confirmadasReal}</div>
+                <div className="fz-kpi-sub">Turnos aprobados y listos para jugar</div>
+              </div>
+
+              <div className="fz-kpi-card">
+                <div className="fz-kpi-top">
+                  <span className="fz-kpi-label">RECHAZADAS</span>
+                  <span className="fz-kpi-badge-neutral">NO APROBADAS</span>
+                </div>
+                <div className="fz-kpi-value">{rechazadasReal}</div>
+                <div className="fz-kpi-sub">Solicitudes rechazadas</div>
               </div>
             </div>
 
@@ -516,11 +564,12 @@ function DashboardCliente({ usuario, onLogout, onGoToBooking }: DashboardCliente
                           <td><strong>${(Number(r.precio_total) || 50000).toLocaleString("es-CO")} COP</strong></td>
                           <td>
                             <span className={`fz-badge-status ${r.estado}`}>
-                              {r.estado === "confirmada" && "CONFIRMADA"}
-                              {r.estado === "pendiente" && "PENDIENTE"}
-                              {r.estado === "completada" && "COMPLETADA"}
-                              {r.estado === "cancelada" && "CANCELADA"}
-                              {!["confirmada", "pendiente", "completada", "cancelada"].includes(r.estado) && r.estado?.toUpperCase()}
+                              {r.estado === "confirmada"  && "✅ CONFIRMADA"}
+                              {r.estado === "pendiente"   && "⏳ PENDIENTE DE APROBACIÓN"}
+                              {r.estado === "completada"  && "🏆 COMPLETADA"}
+                              {r.estado === "cancelada"   && "🚫 CANCELADA"}
+                              {r.estado === "rechazada"   && "❌ RECHAZADA"}
+                              {!["confirmada","pendiente","completada","cancelada","rechazada"].includes(r.estado) && r.estado?.toUpperCase()}
                             </span>
                           </td>
                           <td>
@@ -794,11 +843,12 @@ function DashboardCliente({ usuario, onLogout, onGoToBooking }: DashboardCliente
                           <td>{metodo}</td>
                           <td>
                             <span className={`fz-badge-status ${r.estado}`}>
-                              {r.estado === "confirmada" && "CONFIRMADA"}
-                              {r.estado === "pendiente" && "PENDIENTE"}
-                              {r.estado === "completada" && "COMPLETADA"}
-                              {r.estado === "cancelada" && "CANCELADA"}
-                              {!["confirmada", "pendiente", "completada", "cancelada"].includes(r.estado) && r.estado?.toUpperCase()}
+                              {r.estado === "confirmada"  && "✅ CONFIRMADA"}
+                              {r.estado === "pendiente"   && "⏳ PENDIENTE DE APROBACIÓN"}
+                              {r.estado === "completada"  && "🏆 COMPLETADA"}
+                              {r.estado === "cancelada"   && "🚫 CANCELADA"}
+                              {r.estado === "rechazada"   && "❌ RECHAZADA"}
+                              {!["confirmada","pendiente","completada","cancelada","rechazada"].includes(r.estado) && r.estado?.toUpperCase()}
                             </span>
                           </td>
                           <td>

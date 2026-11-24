@@ -267,22 +267,22 @@ function ReservaCancha({ cancha, onGoBack, onReservationCreated, onRequireLogin 
       if (res.success) {
         // Notificar en el buzón del cliente
         notificarCliente(usuario?.id, {
-          titulo: "Reserva Creada Exitosamente",
-          mensaje: `Has agendado ${cancha?.nombre || "Cancha Central"} (${infoCatalogo.tipoModalidad}) para el ${fecha} (${bloqueSeleccionado.inicio.substring(0, 5)} - ${hFinCalculada.substring(0, 5)}). Total con adicionales: $${totalPagar.toLocaleString("es-CO")} COP.`,
+          titulo: "Solicitud Enviada (Pendiente de Aprobación)",
+          mensaje: `Tu solicitud para ${cancha?.nombre || "Cancha Central"} (${infoCatalogo.tipoModalidad}) el ${fecha} (${bloqueSeleccionado.inicio.substring(0, 5)} - ${hFinCalculada.substring(0, 5)}) quedó PENDIENTE DE APROBACIÓN. Total: $${totalPagar.toLocaleString("es-CO")} COP.`,
           tipo: "reserva",
           accionVista: "client_dashboard",
         });
 
         // Notificar en el buzón del administrador
         notificarAdmin({
-          titulo: "Nueva Reserva con Adicionales",
-          mensaje: `${usuario?.nombre || "Cliente"} ha reservado ${cancha?.nombre || "Cancha Central"} para el ${fecha}. Total Liquidado: $${totalPagar.toLocaleString("es-CO")} COP.`,
+          titulo: "Nueva Solicitud de Reserva",
+          mensaje: `${usuario?.nombre || "Cliente"} ha solicitado ${cancha?.nombre || "Cancha Central"} para el ${fecha}. Total: $${totalPagar.toLocaleString("es-CO")} COP. Estado: PENDIENTE.`,
           tipo: "reserva",
           accionVista: "admin_dashboard",
         });
 
         setMensaje({
-          texto: "¡Reserva realizada con éxito! Redirigiendo a tu panel...",
+          texto: "¡Solicitud enviada! Tu reserva está PENDIENTE DE APROBACIÓN por el administrador. Redirigiendo...",
           tipo: "exito",
         });
         setTimeout(() => {

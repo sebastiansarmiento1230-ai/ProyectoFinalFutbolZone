@@ -63,8 +63,9 @@ export const notificarCliente = (
     accionVista?: "landing" | "admin_dashboard" | "client_dashboard" | "reserva";
   }
 ) => {
+  if (!usuarioId) return;
   try {
-    const clave = `fz_notifs_${usuarioId || "guest"}`;
+    const clave = `fz_notifs_${usuarioId}`;
     const nueva: NotificacionItem = {
       id: `notif_cli_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       titulo: notif.titulo,
@@ -79,14 +80,6 @@ export const notificarCliente = (
     let lista: NotificacionItem[] = prev ? JSON.parse(prev) : [];
     lista = [nueva, ...lista.slice(0, 30)];
     localStorage.setItem(clave, JSON.stringify(lista));
-
-    // Si es guest o no tiene ID, también guardar en clave global de cliente
-    if (!usuarioId) {
-      const prevGuest = localStorage.getItem("fz_notifs_guest");
-      let listaGuest: NotificacionItem[] = prevGuest ? JSON.parse(prevGuest) : [];
-      listaGuest = [nueva, ...listaGuest.slice(0, 30)];
-      localStorage.setItem("fz_notifs_guest", JSON.stringify(listaGuest));
-    }
 
     window.dispatchEvent(new Event("fz_notification_update"));
   } catch (err) {

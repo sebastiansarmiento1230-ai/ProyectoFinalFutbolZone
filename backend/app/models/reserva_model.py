@@ -11,14 +11,15 @@ class EstadoReserva(str, enum.Enum):
     confirmada = "confirmada"
     cancelada  = "cancelada"
     completada = "completada"
+    rechazada  = "rechazada"
 
 
 class ReservaModel(Base):
     __tablename__ = "reservas"
 
     id             = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    usuario_id     = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    cancha_id      = Column(Integer, ForeignKey("canchas.id"),  nullable=False)
+    usuario_id     = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False, index=True)
+    cancha_id      = Column(Integer, ForeignKey("canchas.id",  ondelete="RESTRICT"), nullable=False, index=True)
     fecha          = Column(Date,  nullable=False)
     hora_inicio    = Column(Time,  nullable=False)
     hora_fin       = Column(Time,  nullable=False)
@@ -29,6 +30,7 @@ class ReservaModel(Base):
     actualizado_en = Column(DateTime, onupdate=func.now())
 
     # Relaciones
-    usuario = relationship("UsuarioModel", back_populates="reservas")
-    cancha  = relationship("CanchaModel",  back_populates="reservas")
-    pago    = relationship("PagoModel",    back_populates="reserva", uselist=False)
+    usuario        = relationship("UsuarioModel",      back_populates="reservas")
+    cancha         = relationship("CanchaModel",       back_populates="reservas")
+    pago           = relationship("PagoModel",         back_populates="reserva", uselist=False)
+    notificaciones = relationship("NotificacionModel", back_populates="reserva")

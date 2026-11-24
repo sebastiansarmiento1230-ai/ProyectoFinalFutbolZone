@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS reservas (
   hora_inicio    TIME NOT NULL,
   hora_fin       TIME NOT NULL,
   precio_total   DECIMAL(10,2) NOT NULL,
-  estado         ENUM('pendiente','confirmada','cancelada','completada') DEFAULT 'pendiente',
+  estado         ENUM('pendiente','confirmada','cancelada','completada','rechazada') DEFAULT 'pendiente',
   notas          TEXT,
   creado_en      DATETIME DEFAULT CURRENT_TIMESTAMP,
   actualizado_en DATETIME ON UPDATE CURRENT_TIMESTAMP,
@@ -109,6 +109,20 @@ CREATE TABLE IF NOT EXISTS pagos (
   FOREIGN KEY (usuario_id)     REFERENCES usuarios(id),
   FOREIGN KEY (reserva_id)     REFERENCES reservas(id),
   FOREIGN KEY (inscripcion_id) REFERENCES inscripciones_torneo(id)
+);
+
+-- ── Tabla notificaciones ─────────────────────────
+CREATE TABLE IF NOT EXISTS notificaciones (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  usuario_id  INT NOT NULL,
+  titulo      VARCHAR(200) NOT NULL,
+  mensaje     TEXT NOT NULL,
+  tipo        VARCHAR(50) DEFAULT 'reserva',
+  leida       BOOLEAN DEFAULT FALSE,
+  reserva_id  INT NULL,
+  creado_en   DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+  FOREIGN KEY (reserva_id) REFERENCES reservas(id)
 );
 
 -- ── Tabla empleados ─────────────────────────────

@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+import uuid
 
 from app.models.usuario_model import UsuarioModel, RolUsuario
 from app.schemas.usuario_schema import UsuarioSchema, UsuarioUpdateSchema, UsuarioLoginSchema
@@ -14,11 +15,13 @@ def get_usuarios(db: Session):
     data = [
         {
             "id": u.id,
+            "uuid": u.uuid,
             "nombre": u.nombre,
             "apellido": u.apellido,
+            "nombre_completo": u.nombre_completo or f"{u.nombre} {u.apellido}",
             "email": u.email,
             "telefono": u.telefono,
-            "rol": u.rol,
+            "rol": u.rol.value if hasattr(u.rol, "value") else str(u.rol),
             "activo": u.activo,
             "creado_en": str(u.creado_en) if u.creado_en else None
         }
@@ -35,9 +38,16 @@ def get_usuario(id: int, db: Session):
     if not u:
         return api_response(False, "Usuario no encontrado", error="Not found")
     data = {
-        "id": u.id, "nombre": u.nombre, "apellido": u.apellido,
-        "email": u.email, "telefono": u.telefono,
-        "rol": u.rol, "activo": u.activo
+        "id": u.id,
+        "uuid": u.uuid,
+        "nombre": u.nombre,
+        "apellido": u.apellido,
+        "nombre_completo": u.nombre_completo or f"{u.nombre} {u.apellido}",
+        "email": u.email,
+        "telefono": u.telefono,
+        "rol": u.rol.value if hasattr(u.rol, "value") else str(u.rol),
+        "activo": u.activo,
+        "creado_en": str(u.creado_en) if u.creado_en else None
     }
     return api_response(True, "Usuario encontrado", data=data)
 
@@ -63,15 +73,22 @@ def get_clientes(db: Session):
 # REGISTRO
 # ================================================
 def create_usuario(body: UsuarioSchema, db: Session):
-    existe = db.query(UsuarioModel).filter(UsuarioModel.email == body.correo).first()
+    correo_normalizado = body.correo.strip().lower()
+    existe = db.query(UsuarioModel).filter(UsuarioModel.email == correo_normalizado).first()
     if existe:
         return api_response(False, "El correo ya está registrado", error="Duplicate email")
 
+    nombre_limpio = body.nombre.strip()
+    apellido_limpio = body.apellido.strip()
+    nombre_completo = f"{nombre_limpio} {apellido_limpio}".strip()
+
     nuevo = UsuarioModel(
-        nombre=body.nombre,
-        apellido=body.apellido,
-        email=body.correo,
-        telefono=body.telefono,
+        uuid=str(uuid.uuid4()),
+        nombre=nombre_limpio,
+        apellido=apellido_limpio,
+        nombre_completo=nombre_completo,
+        email=correo_normalizado,
+        telefono=body.telefono.strip() if body.telefono else None,
         password_hash=hash_password(body.password),
         rol=RolUsuario.cliente
     )
@@ -79,10 +96,27 @@ def create_usuario(body: UsuarioSchema, db: Session):
     db.commit()
     db.refresh(nuevo)
 
+    from app.controllers.notificacion_controller import crear_notificacion_admins
+    crear_notificacion_admins(
+        db=db,
+        titulo="👤 Nuevo Cliente Registrado",
+        mensaje=f"Se ha registrado {nuevo.nombre_completo} ({nuevo.email}) en la plataforma.",
+        tipo="sistema",
+    )
+
     return api_response(
         True,
-        f"Usuario registrado correctamente. ¡Ya puedes iniciar sesión!",
-        data={"id": nuevo.id, "nombre": nuevo.nombre, "email": nuevo.email}
+        "Usuario registrado correctamente. ¡Ya puedes iniciar sesión!",
+        data={
+            "id": nuevo.id,
+            "uuid": nuevo.uuid,
+            "nombre": nuevo.nombre,
+            "apellido": nuevo.apellido,
+            "nombre_completo": nuevo.nombre_completo,
+            "email": nuevo.email,
+            "rol": nuevo.rol.value if hasattr(nuevo.rol, "value") else str(nuevo.rol),
+            "creado_en": str(nuevo.creado_en) if nuevo.creado_en else None
+        }
     )
 
 
@@ -90,7 +124,8 @@ def create_usuario(body: UsuarioSchema, db: Session):
 # LOGIN
 # ================================================
 def login_usuario(body: UsuarioLoginSchema, db: Session):
-    usuario = db.query(UsuarioModel).filter(UsuarioModel.email == body.correo).first()
+    correo_normalizado = body.correo.strip().lower()
+    usuario = db.query(UsuarioModel).filter(UsuarioModel.email == correo_normalizado).first()
     if not usuario or not verificar_password(body.password, usuario.password_hash):
         return api_response(False, "Correo o contraseña incorrectos", error="Unauthorized")
     if not usuario.activo:
@@ -128,6 +163,7 @@ def update_usuario(id: int, body: UsuarioUpdateSchema, db: Session):
     cambios = body.model_dump(exclude_unset=True)
     for campo, valor in cambios.items():
         setattr(usuario, campo, valor)
+    usuario.nombre_completo = f"{usuario.nombre} {usuario.apellido}".strip()
 
     db.commit()
     db.refresh(usuario)
